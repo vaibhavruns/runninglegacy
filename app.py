@@ -5,24 +5,20 @@ import plotly.graph_objects as go
 import os
 
 # 1. PREMIUM PAGE SETUP
-st.set_page_config(page_title="Running Journey", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="Running Journey", page_icon="🏃‍♂️", layout="wide")
 
-# Inject bulletproof CSS to guarantee 100% readability (Fixes the black-on-black text bug)
+# Inject CSS to guarantee text visibility across dark mode elements
 st.markdown("""
     <style>
-    /* Force overall app dark background */
     .stApp {
         background-color: #0d1117 !important;
     }
-    /* Force ALL text, markdown, paragraphs, and labels to be light and readable */
     html, body, [data-testid="stMarkdownContainer"] p, p, label, .stSelectbox, div {
         color: #c9d1d9 !important;
     }
-    /* Bold/Header overrides */
     h1, h2, h3, h4, h5, h6, strong, .metric-val {
         color: #ffffff !important;
     }
-    /* Premium KPI Card Design */
     .kpi-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -50,7 +46,6 @@ st.markdown("""
         letter-spacing: 1px;
         margin-top: 5px;
     }
-    /* Styling for the tables to prevent hidden text */
     .dataframe {
         color: #c9d1d9 !important;
         background-color: #161b22 !important;
@@ -58,7 +53,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. ROBUST DATA CLEANING & LOADING ENGINE
+# 2. DATA LOADING & ROBUST CLEANING ENGINE
 @st.cache_data
 def load_garmin_data():
     if not os.path.exists("activities.csv"):
@@ -66,18 +61,15 @@ def load_garmin_data():
     try:
         df = pd.read_csv("activities.csv")
         
-        # Dynamically identify columns to avoid name mismatch errors
         date_col = [c for c in df.columns if 'Date' in c or 'Time' in c or 'Start' in c][0]
         dist_col = [c for c in df.columns if 'Distance' in c][0]
         pace_col = [c for c in df.columns if 'Pace' in c or 'Speed' in c][0]
         hr_col = [c for c in df.columns if 'Heart Rate' in c or 'HR' in c]
         
-        # Convert Types safely
         df['Date'] = pd.to_datetime(df[date_col])
         df['Year'] = df['Date'].dt.year
         df['Distance_KM'] = pd.to_numeric(df[dist_col], errors='coerce').fillna(0)
         
-        # Parse Paces safely into decimal minutes for clean graphing
         def parse_pace(x):
             try:
                 if ':' in str(x):
@@ -94,12 +86,12 @@ def load_garmin_data():
         else:
             df['Heart_Rate'] = None
             
-        # Categorization Engine
+        # CATEGORIZATION ENGINE
         def segment_run(km):
             if km >= 42.0: return "Full Marathon 🏆"
             elif km >= 21.2: return "Between Half & Full 📈"
             elif km >= 21.0: return "Half Marathon 🥈"
-            elif km >= 10.0: return "10K Runs ⚡"
+            elif km >= 10.0: return "Between 10K & Half Marathon ⚡"
             else: return "Less than 10K 🌱"
             
         df['Category'] = df['Distance_KM'].apply(segment_run)
@@ -109,17 +101,15 @@ def load_garmin_data():
 
 df = load_garmin_data()
 
-# ==========================================
-# HEADER SECTION
-# ==========================================
+# HEADER
 st.markdown("<h1 style='text-align: center; font-weight: 800; margin-bottom: 5px;'>🏃‍♂️ Running Journey</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #8b949e !important;'>An interactive lifelong archive of discipline, volume, and endurance legacy.</p>", unsafe_allow_html=True)
 st.markdown("<hr style='border-color: #30363d;'>", unsafe_allow_html=True)
 
 if df is None:
-    st.error("Error loading 'activities.csv'. Please check your repository configurations.")
+    st.error("Error loading data file configuration.")
 else:
-    # 3. HIGH-LEVEL CORE KPI METRICS
+    # KPI CARD BLOCK
     total_runs = len(df)
     total_km = df['Distance_KM'].sum()
     avg_run_dist = df['Distance_KM'].mean()
@@ -145,7 +135,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # 4. ROW 1: YEAR-ON-YEAR VOLUME & CATEGORIES
+    # VISUALIZATION ROW 1
     col1, col2 = st.columns(2)
     
     with col1:
@@ -164,7 +154,7 @@ else:
 
     with col2:
         st.markdown("### 🗂️ Run Count by Category")
-        cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "10K Runs ⚡", "Less than 10K 🌱"]
+        cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "Between 10K & Half Marathon ⚡", "Less than 10K 🌱"]
         cat_counts = df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
         cat_counts.columns = ['Category', 'Runs']
         
@@ -180,12 +170,11 @@ else:
 
     st.markdown("<hr style='border-color: #30363d;'>", unsafe_allow_html=True)
 
-    # 5. ROW 2: PACE AND HEART RATE DYNAMICS
+    # VISUALIZATION ROW 2
     col3, col4 = st.columns(2)
     
     with col3:
         st.markdown("### 📈 Pacing Profile over Time")
-        # Filters outliers or empty paces
         pace_df = df[df['Pace_Decimal'].notna() & (df['Pace_Decimal'] < 12) & (df['Pace_Decimal'] > 3)].sort_values('Date')
         
         fig_pace = px.scatter(
@@ -196,7 +185,7 @@ else:
         fig_pace.update_layout(
             template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", 
             plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Pace (Min/KM)",
-            yaxis=dict(autorange="reversed") # Faster paces are smaller numbers
+            yaxis=dict(autorange="reversed")
         )
         st.plotly_chart(fig_pace, use_container_width=True)
 
@@ -214,15 +203,13 @@ else:
             )
             st.plotly_chart(fig_hr, use_container_width=True)
         else:
-            st.info("Heart Rate data columns not detected or populated in the uploaded log format.")
+            st.info("Heart Rate data tracking active. Waiting for continuous sync parameters.")
 
-    # 6. FASTEST EFFORTS LEADERS
+    # LEADERS
     st.markdown("<hr style='border-color: #30363d;'>", unsafe_allow_html=True)
     st.markdown("### 🏅 All-Time Fastest Efforts Leaderboard")
     
     if df['Pace_Decimal'].notna().sum() > 0:
         fastest_efforts = df[df['Pace_Decimal'].notna() & (df['Distance_KM'] > 2)].sort_values(by='Pace_Decimal', ascending=True).head(5)
-        
-        # Displaying clean, legible summary entries
         for idx, row in fastest_efforts.iterrows():
-            st.markdown(f"🏁 **{row['Date'].strftime('%d %B %Y')}** — Run distance of **{row['Distance_KM']:.2f} KM** completed with an elite pace of **{int(row['Pace_Decimal'])}:{int((row['Pace_Decimal']%1)*60):02d} /km**.")
+            st.markdown(f"🏁 **{row['Date'].strftime('%d %B %Y')}** — Run distance of **{row['Distance_KM']:.2f} KM** completed with a pace of **{int(row['Pace_Decimal'])}:{int((row['Pace_Decimal']%1)*60):02d} /km**.")
