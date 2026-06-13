@@ -47,7 +47,6 @@ st.markdown("""
         letter-spacing: 1.2px;
         margin-top: 5px;
     }
-    /* Sleek container for the moving ticker tape */
     .ticker-wrap {
         background: #111111;
         padding: 12px;
@@ -110,121 +109,23 @@ st.markdown("<p style='text-align: center; color: #6c757d !important;'>A streaml
 if df is None:
     st.error("Missing 'activities.csv' data file link.")
 else:
-    # 3. DYNAMIC MOVING TICKER TAPE (FASTEST EFFORTS AT THE TOP)
-    if df['Pace_Decimal'].notna().sum() > 0:
-        fastest_df = df[df['Pace_Decimal'].notna() & (df['Distance_KM'] > 2)].sort_values(by='Pace_Decimal', ascending=True).head(5)
+    # 3. DYNAMIC TARGETED BENCHMARKS TICKER TAPE
+    ticker_items = []
+    
+    # Extract Best 10K (Standard window catching runs around ~10KM)
+    df_10k = df[(df['Distance_KM'] >= 9.5) & (df['Distance_KM'] <= 11.5) & (df['Pace_Decimal'].notna())]
+    if not df_10k.empty:
+        best_10k = df_10k.loc[df_10k['Pace_Decimal'].idxmin()]
+        p_min = int(best_10k['Pace_Decimal'])
+        p_sec = int((best_10k['Pace_Decimal'] % 1) * 60)
+        r_date = best_10k['Date'].strftime('%d %b %Y')
+        d_val = best_10k['Distance_KM']
+        ticker_items.append(f"🎯 BEST 10K: {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
         
-        ticker_items = []
-        for idx, row in fastest_df.iterrows():
-            p_min = int(row['Pace_Decimal'])
-            p_sec = int((row['Pace_Decimal'] % 1) * 60)
-            r_date = row['Date'].strftime('%d %b %Y')
-            d_val = row['Distance_KM']
-            # Build individual segment
-            item = f"🔥 Best Effort: {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})"
-            ticker_items.append(item)
-        
-        # Combine items into a long string separated by distinct dividers
-        full_ticker_text = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_items)
-        
-        # Inject custom scrolling marquee
-        st.markdown(f"""
-            <div class="ticker-wrap">
-                <marquee behavior="scroll" direction="left" scrollamount="6" style="color: #10b981; font-weight: 700; font-family: monospace; font-size: 1.1rem;">
-                    🚀 ALL-TIME LEADERS TAPE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {full_ticker_text}
-                </marquee>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # 4. CORE METRICS DISPLAY PANEL
-    total_runs = len(df)
-    total_km = df['Distance_KM'].sum()
-    avg_run_dist = df['Distance_KM'].mean()
-    
-    st.markdown(f"""
-        <div class="kpi-container">
-            <div class="kpi-card">
-                <div class="kpi-value">{total_runs}</div>
-                <div class="kpi-label">Lifetime Runs</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{total_km:,.1f} KM</div>
-                <div class="kpi-label">Total Volume Conquered</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{avg_run_dist:.2f} KM</div>
-                <div class="kpi-label">Avg Distance / Run</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{df['Year'].nunique()}</div>
-                <div class="kpi-label">Years Tracked</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # 5. VISUALIZATION ROW 1: STATIC COLOR YEAR-ON-YEAR & REFINED CATEGORIES
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### 📊 Year-on-Year Training Volume")
-        yoy_volume = df.groupby('Year')['Distance_KM'].sum().reset_index()
-        # Convert Year to a category string so Plotly assigns discrete, distinct solid colors
-        yoy_volume['Year'] = yoy_volume['Year'].astype(str)
-        
-        # High-contrast palette: Royal Blue, Emerald Green, Bold Coral/Orange (Completely hides the continuous color bar scale)
-        fig_yoy = px.bar(
-            yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
-            color='Year', color_discrete_sequence=['#0076d6', '#10b981', '#ff6b6b']
-        )
-        fig_yoy.update_layout(
-            template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", 
-            plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Total Distance (KM)",
-            showlegend=False
-        )
-        st.plotly_chart(fig_yoy, use_container_width=True)
-
-    with col2:
-        st.markdown("### 🗂️ Run Count by Category")
-        cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "Between 10K and 21K ⚡", "10K Runs 🎯", "Less than 10K 🌱"]
-        cat_counts = df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
-        cat_counts.columns = ['Category', 'Runs']
-        
-        fig_cat = px.bar(cat_counts, x='Runs', y='Category', orientation='h', color_discrete_sequence=['#14b8a6'])
-        fig_cat.update_layout(
-            template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", 
-            plot_bgcolor="rgba(0,0,0,0)", xaxis_title="Number of Activities", yaxis_title=""
-        )
-        st.plotly_chart(fig_cat, use_container_width=True)
-
-    st.markdown("<hr style='border-color: #e9ecef; margin-top: 30px; margin-bottom: 30px;'>", unsafe_allow_html=True)
-
-    # 6. VISUALIZATION ROW 2: MONTHLY TIMELINE WITH INDEPENDENT YEAR FILTER
-    st.markdown("### 📅 Monthly Volume Breakdown")
-    
-    # Year select filter layout
-    available_years = sorted(df['Year'].unique(), reverse=True)
-    selected_year = st.selectbox("Choose Year to View Monthly Splits:", options=available_years)
-    
-    # Filter dataset based on selected drop options
-    m_df = df[df['Year'] == selected_year]
-    
-    # Structure monthly groups explicitly ordered from Jan to Dec
-    monthly_grouped = m_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
-    
-    # Re-verify all months 1-12 are accounted for a perfect static layout grid
-    all_months = pd.DataFrame({
-        'Month_Num': range(1, 13),
-        'Month_Name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    })
-    monthly_volume = pd.merge(all_months, monthly_grouped, on=['Month_Num', 'Month_Name'], how='left').fillna(0)
-    
-    fig_month = px.bar(
-        monthly_volume, x='Month_Name', y='Distance_KM', 
-        text_auto='.1f', color_discrete_sequence=['#4f46e5']
-    )
-    fig_month.update_layout(
-        template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", 
-        plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Distance (KM)", 
-        xaxis_title="Months", xaxis={'categoryorder': 'array', 'categoryarray': all_months['Month_Name']}
-    )
-    st.plotly_chart(fig_month, use_container_width=True)
+    # Extract Best 21K Half Marathon
+    df_21k = df[(df['Distance_KM'] >= 20.5) & (df['Distance_KM'] <= 22.5) & (df['Pace_Decimal'].notna())]
+    if not df_21k.empty:
+        best_21k = df_21k.loc[df_21k['Pace_Decimal'].idxmin()]
+        p_min = int(best_21k['Pace_Decimal'])
+        p_sec = int((best_21k['Pace_Decimal'] % 1) * 60)
+        r
