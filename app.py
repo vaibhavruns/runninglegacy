@@ -289,7 +289,7 @@ else:
 
     # --- TAB 2 ---
     with tab_facts:
-        st.markdown("""<div class="chart-container-box"><h3>Official Competitive History Registry</h3>""", unsafe_allow_html=True)
+        st.markdown("""<div class="chart-container-box"><h3>Race Registry</h3>""", unsafe_allow_html=True)
         races = f_df[f_df['Race_Tag'].notna()].sort_values(by='Date_Parsed', ascending=False)
         for _, row in races.iterrows():
             is_full = row['Category_Custom'] == "Full Marathon"
