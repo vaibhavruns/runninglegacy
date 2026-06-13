@@ -198,7 +198,7 @@ div[data-testid="stTabs"] button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# 2. CORE DATA READING ENGINE WITH VERIFIED RACE REGISTRY
+# 2. CORE DATA READING ENGINE WITH OFFICIAL RACE REGISTRY
 @st.cache_data
 def load_garmin_data():
     if not os.path.exists("activities.csv"):
@@ -227,15 +227,21 @@ def load_garmin_data():
         df['Distance_KM'] = pd.to_numeric(df[dist_col], errors='coerce').fillna(0)
         
         # -----------------------------------------------------------------
-        # EXPLICIT VERIFIED RACE MATRIX
+        # OFFICIAL COMPETITIVE PROFILE REGISTRY
         # -----------------------------------------------------------------
         RACE_REGISTRY = {
+            "2023-01-15": {"name": "Tata Mumbai Marathon 5.9K", "bib": "81094", "note": ""},
+            "2023-02-12": {"name": "Thane Half Marathon", "bib": "21559", "note": ""},
+            "2023-11-19": {"name": "Indian Navy 10K", "bib": "12114", "note": ""},
+            "2024-01-21": {"name": "Tata Mumbai Marathon 21K", "bib": "26504", "note": ""},
+            "2024-04-28": {"name": "TCS World 10K Bengaluru", "bib": "3970", "note": "PR EFFORT // 59 MINS"},
+            "2024-09-01": {"name": "Satara Half Hill Marathon", "bib": "25051", "note": ""},
             "2024-10-20": {"name": "Vedanta Delhi Half Marathon", "bib": "3258", "note": ""},
             "2024-12-08": {"name": "Indian Navy 21K", "bib": "23781", "note": ""},
-            "2024-12-15": {"name": "Tata Steel World 25K Kolkata", "bib": "4653", "note": ""},
-            "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": ""},
-            "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": ""},
-            "2025-12-21": {"name": "Tata Steel World 25K Kolkata", "bib": "4895", "note": ""},
+            "2024-12-15": {"name": "Tata Steel World 25k Kolkata", "bib": "4653", "note": ""},
+            "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": "PR EFFORT"},
+            "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": "PR EFFORT"},
+            "2025-12-21": {"name": "Tata Steel World 25k Kolkata", "bib": "4895", "note": ""},
             "2026-01-18": {"name": "Tata Mumbai Full Marathon", "bib": "11435", "note": ""},
             "2026-04-26": {"name": "TCS World 10K Bengaluru", "bib": "32357", "note": "PROCAM SLAM COMPLETED"}
         }
@@ -300,25 +306,32 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 4. STADIUM LED TICKER (ALL-TIME PR BENCHMARKS)
+    # 4. STADIUM LED TICKER (ISOLATED RACE-ONLY BENCHMARKS)
     ticker_items = []
-    df_10k = df[(df['Distance_KM'] >= 9.5) & (df['Distance_KM'] <= 11.5) & (df['Pace_Decimal'].notna())]
-    if not df_10k.empty:
-        best_10k = df_10k.loc[df_10k['Pace_Decimal'].idxmin()]
-        p_min, p_sec = int(best_10k['Pace_Decimal']), int((best_10k['Pace_Decimal'] % 1) * 60)
-        ticker_items.append(f"PR 10K: {best_10k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
+    
+    row_10k = df[df['Date'].dt.strftime('%Y-%m-%d') == '2024-04-28']
+    row_21k = df[df['Date'].dt.strftime('%Y-%m-%d') == '2025-10-12']
+    row_42k = df[df['Date'].dt.strftime('%Y-%m-%d') == '2025-09-21']
+    
+    if not row_10k.empty:
+        r10 = row_10k.iloc[0]
+        ticker_items.append(f"PR 10K: TCS BENGALURU ({r10['Distance_KM']:.2f}KM @ 5:54/KM // TIME: 59:00)")
+    else:
+        ticker_items.append("PR 10K: TCS BENGALURU (10.00KM @ 5:54/KM // TIME: 59:00)")
         
-    df_21k = df[(df['Distance_KM'] >= 20.5) & (df['Distance_KM'] <= 22.5) & (df['Pace_Decimal'].notna())]
-    if not df_21k.empty:
-        best_21k = df_21k.loc[df_21k['Pace_Decimal'].idxmin()]
-        p_min, p_sec = int(best_21k['Pace_Decimal']), int((best_21k['Pace_Decimal'] % 1) * 60)
-        ticker_items.append(f"PR 21K: {best_21k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
+    if not row_21k.empty:
+        r21 = row_21k.iloc[0]
+        p_val = r21['Pace_Decimal']
+        p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d}/KM" if pd.notna(p_val) else "--:--"
+        t_str = f" // TIME: {r21['Duration_Raw']}" if pd.notna(r21['Duration_Raw']) else ""
+        ticker_items.append(f"PR HALF MARATHON: VEDANTA DELHI ({r21['Distance_KM']:.2f}KM @ {p_str}{t_str})")
         
-    df_42k = df[(df['Distance_KM'] >= 41.0) & (df['Pace_Decimal'].notna())]
-    if not df_42k.empty:
-        best_42k = df_42k.loc[df_42k['Pace_Decimal'].idxmin()]
-        p_min, p_sec = int(best_42k['Pace_Decimal']), int((best_42k['Pace_Decimal'] % 1) * 60)
-        ticker_items.append(f"PR FULL MARATHON: {best_42k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
+    if not row_42k.empty:
+        r42 = row_42k.iloc[0]
+        p_val = r42['Pace_Decimal']
+        p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d}/KM" if pd.notna(p_val) else "--:--"
+        t_str = f" // TIME: {r42['Duration_Raw']}" if pd.notna(r42['Duration_Raw']) else ""
+        ticker_items.append(f"PR FULL MARATHON: BERLIN ({r42['Distance_KM']:.2f}KM @ {p_str}{t_str})")
         
     if ticker_items:
         spacer = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
@@ -423,7 +436,13 @@ else:
                 for _, row in registered_races.iterrows():
                     p_val = row['Pace_Decimal']
                     p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
-                    r_date = row['Date'].strftime('%B %d, %Y')
+                    
+                    # Override pace metrics for TCS Bengaluru to strictly follow user input configuration
+                    r_date_str = row['Date'].strftime('%Y-%m-%d')
+                    if r_date_str == '2024-04-28':
+                        p_str = "5:54 /km"
+                        
+                    r_date_formatted = row['Date'].strftime('%B %d, %Y')
                     bib_string = f" // BIB: {row['Race_Bib']}" if row['Race_Bib'] else ""
                     
                     is_full_marathon = row['Category'] == "Full Marathon"
@@ -441,7 +460,7 @@ else:
 <div>
 {class_tag}
 <div style='color:#ffffff; font-weight:800; font-size:1.15rem; text-transform:uppercase;'>{row['Race_Tag']}{bib_string}</div>
-<div style='color:#64748b; font-size:0.75rem; font-family:monospace; margin-top:3px;'>CONQUERED: {r_date}</div>
+<div style='color:#64748b; font-size:0.75rem; font-family:monospace; margin-top:3px;'>CONQUERED: {r_date_formatted}</div>
 {note_markup}
 </div>
 <div style='text-align:right; font-family:monospace;'>
@@ -461,15 +480,13 @@ else:
             longest_dist = longest_run_row['Distance_KM']
             longest_date = longest_run_row['Date'].strftime('%B %d, %Y')
             
-            valid_efforts = f_df[(f_df['Distance_KM'] >= 5.0) & (f_df['Pace_Decimal'].notna())]
-            if not valid_efforts.empty:
-                fastest_row = valid_efforts.loc[valid_efforts['Pace_Decimal'].idxmin()]
-                f_pace_dec = fastest_row['Pace_Decimal']
-                fastest_pace = f"{int(f_pace_dec)}:{int((f_pace_dec % 1) * 60):02d} /km"
-                fastest_meta = f"{fastest_row['Distance_KM']:.2f}KM on {fastest_row['Date'].strftime('%b %d, %Y')}"
+            # Use user verified milestones for the high-level PR pacing facts panel
+            if not row_10k.empty:
+                fastest_pace = "5:54 /km"
+                fastest_meta = "TCS World 10K Bengaluru on April 28, 2024"
             else:
                 fastest_pace = "No data"
-                fastest_meta = "Minimum distance threshold 5KM"
+                fastest_meta = "Registry integration missing"
 
             monthly_totals = f_df.groupby(['Year', 'Month_Name'])['Distance_KM'].sum().reset_index()
             peak_month_row = monthly_totals.loc[monthly_totals['Distance_KM'].idxmax()]
@@ -487,7 +504,7 @@ else:
     <div class="fact-sub">Recorded on {longest_date}</div>
 </div>
 <div class="fact-card">
-    <div class="fact-title">Fastest Pacing Effort</div>
+    <div class="fact-title">Verified Fastest Pace</div>
     <div class="fact-value">{fastest_pace}</div>
     <div class="fact-sub">{fastest_meta}</div>
 </div>
@@ -519,6 +536,11 @@ else:
                 p_val = row['Pace_Decimal']
                 p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
                 
+                # Apply hardcoded target duration configuration for TCS Bengaluru feed line items
+                card_date_str = row['Date'].strftime('%Y-%m-%d')
+                if card_date_str == '2024-04-28':
+                    p_str = "5:54 /km"
+                
                 hr_val = row['Heart_Rate']
                 hr_str = f"{int(hr_val)} bpm" if pd.notna(hr_val) and hr_val > 0 else "--"
                 race_label = f" // {row['Race_Tag']}" if pd.notna(row['Race_Tag']) else ""
@@ -545,7 +567,7 @@ else:
 <div class="flashcard-metric-lbl">Distance</div>
 </div>
 <div class="flashcard-metric">
-<div class="flashcard-metric-val">{row['Duration_Raw']}</div>
+<div class="flashcard-metric-val">{row['Duration_Raw'] if card_date_str != '2024-04-28' else "59:00"}</div>
 <div class="flashcard-metric-lbl">Time</div>
 </div>
 <div class="flashcard-metric">
