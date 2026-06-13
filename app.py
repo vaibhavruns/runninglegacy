@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom typography and styled container boxes (Emoji-free modern sports look)
+# Custom typography and styled container boxes (Industrial sports aesthetic)
 st.markdown("""
     <style>
     .stApp {
@@ -71,6 +71,42 @@ st.markdown("""
         border-radius: 8px !important;
         padding: 24px !important;
         margin-bottom: 25px !important;
+    }
+    /* Fact Grid Layout */
+    .fact-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .fact-card {
+        background: #121721;
+        border: 1px solid #1e293b;
+        border-radius: 6px;
+        padding: 22px;
+        border-top: 3px solid #ccff00;
+    }
+    .fact-title {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+        font-weight: 700;
+    }
+    .fact-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #ffffff !important;
+        font-family: monospace;
+        line-height: 1.2;
+    }
+    .fact-sub {
+        font-size: 0.7rem;
+        color: #00f0ff !important;
+        text-transform: uppercase;
+        margin-top: 6px;
+        letter-spacing: 0.5px;
     }
     /* Flashcard Row Systems */
     .flashcard-row {
@@ -169,6 +205,7 @@ def load_garmin_data():
         df['Year'] = df['Date'].dt.year
         df['Month_Num'] = df['Date'].dt.month
         df['Month_Name'] = df['Date'].dt.strftime('%b')
+        df['Day_Name'] = df['Date'].dt.day_name()
         df['Distance_KM'] = pd.to_numeric(df[dist_col], errors='coerce').fillna(0)
         
         def parse_pace(x):
@@ -217,7 +254,6 @@ else:
         cat_list = ["ALL CATEGORIES"] + ["Full Marathon", "Between Half and Full", "Half Marathon", "Between 10K and 21K", "10K Runs", "Less than 10K"]
         selected_cat = st.selectbox("ISOLATE DISTANCE THRESHOLD:", options=cat_list)
         
-    # Isolate global dataframe parameters
     f_df = df.copy()
     if selected_year != "ALL TIME":
         f_df = f_df[f_df['Year'] == int(selected_year)]
@@ -257,11 +293,11 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-    # 5. TABBED ARCHITECTURE DEPLOYMENT
-    tab_dashboard, tab_feed = st.tabs(["Overview and Analytics", "Activity Feed Log"])
+    # 5. EXPANDED NAVIGATION ARCHITECTURE
+    tab_dashboard, tab_facts, tab_feed = st.tabs(["Overview and Analytics", "System Insights and Milestones", "Activity Feed Log"])
 
+    # --- TAB 1: OVERVIEW & ANALYTICS ---
     with tab_dashboard:
-        # KPI Core Summary Blocks
         total_runs = len(f_df)
         total_km = f_df['Distance_KM'].sum()
         avg_run_dist = f_df['Distance_KM'].mean() if total_runs > 0 else 0
@@ -288,9 +324,7 @@ else:
             </div>
         """, unsafe_allow_html=True)
 
-        # ROW 1 CONTAINERS: VOLUME AND CATEGORIES
         col1, col2 = st.columns(2)
-        
         with col1:
             st.markdown("""<div class="chart-container-box"><h3>Annual Training Volume</h3>""", unsafe_allow_html=True)
             yoy_volume = f_df.groupby('Year')['Distance_KM'].sum().reset_index()
@@ -300,10 +334,7 @@ else:
                 yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
                 color='Year', color_discrete_sequence=['#00f0ff', '#ccff00', '#ff4757']
             )
-            fig_yoy.update_layout(template="plotly_dark")
-            fig_yoy.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-            fig_yoy.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
-            fig_yoy.update_layout(showlegend=False)
+            fig_yoy.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title="VOLUME (KM)", xaxis_title="", showlegend=False)
             st.plotly_chart(fig_yoy, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -314,20 +345,14 @@ else:
             cat_counts.columns = ['Category', 'Runs']
             
             fig_cat = px.bar(cat_counts, x='Runs', y='Category', orientation='h', color_discrete_sequence=['#ccff00'])
-            fig_cat.update_layout(template="plotly_dark")
-            fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-            fig_cat.update_layout(xaxis_title="FREQUENCY", yaxis_title="")
+            fig_cat.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title="FREQUENCY", yaxis_title="")
             st.plotly_chart(fig_cat, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # ROW 2 CONTAINER: NON-MERGED INTRA-ANNUAL TIMELINE SEQUENCING
         st.markdown("""<div class="chart-container-box"><h3>Intra-Annual Splits Timeline</h3>""", unsafe_allow_html=True)
-        
         if selected_year == "ALL TIME":
-            # Group chronologically across all tracked months and years sequentially
             monthly_grouped = f_df.groupby(['Year', 'Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
             monthly_grouped = monthly_grouped.sort_values(['Year', 'Month_Num'])
-            # Build continuous chronological labels: e.g., Jan '24, Feb '24
             monthly_grouped['Timeline'] = monthly_grouped['Month_Name'] + " '" + monthly_grouped['Year'].astype(str).str[-2:]
             
             fig_month = px.bar(
@@ -336,7 +361,6 @@ else:
             )
             fig_month.update_layout(xaxis={'type': 'category'})
         else:
-            # Traditional 12-month fixed grid for a single standalone year target
             monthly_grouped = f_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
             all_months = pd.DataFrame({
                 'Month_Num': range(1, 13),
@@ -344,22 +368,111 @@ else:
             })
             monthly_volume = pd.merge(all_months, monthly_grouped, on=['Month_Num', 'Month_Name'], how='left').fillna(0)
             
-            fig_month = px.bar(
-                monthly_volume, x='Month_Name', y='Distance_KM', 
-                text_auto='.1f', color_discrete_sequence=['#00f0ff']
-            )
+            fig_month = px.bar(monthly_volume, x='Month_Name', y='Distance_KM', text_auto='.1f', color_discrete_sequence=['#00f0ff'])
             fig_month.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': all_months['Month_Name']})
             
-        fig_month.update_layout(template="plotly_dark")
-        fig_month.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        fig_month.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
+        fig_month.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title="VOLUME (KM)", xaxis_title="")
         st.plotly_chart(fig_month, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with tab_feed:
-        # FEED ARCHITECTURE LAYER
-        st.markdown("### ACTIVITY FEED LOG")
+    # --- TAB 2: SYSTEM INSIGHTS & MILESTONES ---
+    with tab_facts:
+        st.markdown("### HISTORICAL PERFORMANCE INSIGHTS")
         
+        if f_df.empty:
+            st.warning("Insufficient data parameters matching current selection.")
+        else:
+            # Fact Extraction Logic Block
+            # 1. Peak Mileage Single Run
+            longest_run_row = f_df.loc[f_df['Distance_KM'].idxmax()]
+            longest_dist = longest_run_row['Distance_KM']
+            longest_date = longest_run_row['Date'].strftime('%B %d, %Y')
+            
+            # 2. Fastest Workout Effort (Filtered for runs > 5KM to avoid noise)
+            valid_efforts = f_df[(f_df['Distance_KM'] >= 5.0) & (f_df['Pace_Decimal'].notna())]
+            if not valid_efforts.empty:
+                fastest_row = valid_efforts.loc[valid_efforts['Pace_Decimal'].idxmin()]
+                f_pace_dec = fastest_row['Pace_Decimal']
+                fastest_pace = f"{int(f_pace_dec)}:{int((f_pace_dec % 1) * 60):02d} /km"
+                fastest_meta = f"{fastest_row['Distance_KM']:.2f}KM on {fastest_row['Date'].strftime('%b %d, %Y')}"
+            else:
+                fastest_pace = "No data"
+                fastest_meta = "Minimum distance threshold 5KM"
+
+            # 3. Peak Training Block Month (Highest collective volume)
+            monthly_totals = f_df.groupby(['Year', 'Month_Name'])['Distance_KM'].sum().reset_index()
+            peak_month_row = monthly_totals.loc[monthly_totals['Distance_KM'].idxmax()]
+            peak_month_str = f"{peak_month_row['Month_Name']} {peak_month_row['Year']}"
+            peak_month_vol = f"{peak_month_row['Distance_KM']:.1f} KM"
+
+            # 4. Consistency Architecture: Primary Training Window
+            day_counts = f_df['Day_Name'].value_counts()
+            dominant_day = day_counts.index[0]
+            dominant_day_count = f"{day_counts.iloc[0]} Sessions"
+
+            # Render Analytics Grid Cards
+            st.markdown(f"""
+                <div class="fact-grid">
+                    <div class="fact-card">
+                        <div class="fact-title">Peak Endurance Distance</div>
+                        <div class="fact-value">{longest_dist:.2f} KM</div>
+                        <div class="fact-sub">Recorded on {longest_date}</div>
+                    </div>
+                    <div class="fact-card">
+                        <div class="fact-title">Fastest Pacing Effort</div>
+                        <div class="fact-value">{fastest_pace}</div>
+                        <div class="fact-sub">{fastest_meta}</div>
+                    </div>
+                    <div class="fact-card">
+                        <div class="fact-title">Peak Training Volume Month</div>
+                        <div class="fact-value">{peak_month_vol}</div>
+                        <div class="fact-sub">Achieved during {peak_month_str}</div>
+                    </div>
+                    <div class="fact-card">
+                        <div class="fact-title">Dominant Training Window</div>
+                        <div class="fact-value">{dominant_day}</div>
+                        <div class="fact-sub">Accounted for {dominant_day_count}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Geographic and Named Race Footprint Breakdown
+            st.markdown("""<div class="chart-container-box"><h3>Geographic Footprint and Event History</h3>""", unsafe_allow_html=True)
+            
+            # Extract unique words from tags and titles that match geographic indicators or official tags
+            raw_indicators = []
+            if 'Race_Tag' in f_df.columns:
+                raw_indicators += f_df['Race_Tag'].dropna().unique().tolist()
+            if 'Activity_Title' in f_df.columns:
+                # Isolate unique named workouts omitting generic default titles
+                unique_titles = f_df['Activity_Title'].dropna().unique()
+                filtered_titles = [t for t in unique_titles if "run" not in t.lower() and "morning" not in t.lower() and "evening" not in t.lower()]
+                raw_indicators += filtered_titles
+            
+            # Deduplicate entries cleanly
+            clean_footprints = sorted(list(set([str(item).strip() for item in raw_indicators if len(str(item).strip()) > 1])))
+            
+            if clean_footprints:
+                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-bottom:15px;'>The data engine parsed the following historical event registrations and locations from your activity metadata:</p>", unsafe_allow_html=True)
+                
+                # Render clean structural layout blocks for tags
+                footprint_cols = st.columns(3)
+                for i, place in enumerate(clean_footprints):
+                    col_idx = i % 3
+                    with footprint_cols[col_idx]:
+                        st.markdown(f"""
+                            <div style='background:#1e293b; padding:12px 20px; border-radius:4px; margin-bottom:10px; border-left:3px solid #00f0ff; color:#ffffff; font-family:monospace; font-size:0.9rem;'>
+                                // {place.upper()}
+                            </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.markdown("<p style='color:#64748b;'>No unique race metadata or custom geographic title strings parsed in this filter subset. Update the activity name rows in your source document to populate locations.</p>", unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- TAB 3: ACTIVITY FEED LOG ---
+    with tab_feed:
+        st.markdown("### ACTIVITY FEED LOG")
         if f_df.empty:
             st.warning("No performance records match your active filtering configuration.")
         else:
