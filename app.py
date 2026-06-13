@@ -3,61 +3,130 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# 1. PREMIUM LIGHT MODE PAGE SETUP
+# 1. 2026 ATHLETIC PERFORMANCE PAGE SETUP
 st.set_page_config(
-    page_title="Running Journey",
-    page_icon="🏃‍♂️",
+    page_title="RUNNING JOURNEY // ENGINE",
+    page_icon="⚡",
     layout="wide"
 )
 
-# Inject explicit clean-light typography and structural CSS
+# Core layout styling & flashcard grid components matching image_ee5dbb.png
 st.markdown("""
     <style>
+    /* Dark Matte Carbon Canvas */
     .stApp {
-        background-color: #ffffff !important;
-        color: #212529 !important;
-        font-family: 'Inter', -apple-system, sans-serif !important;
+        background-color: #0b0e14 !important;
+        color: #e2e8f0 !important;
+        font-family: 'Inter', system-ui, sans-serif !important;
     }
     html, body, [data-testid="stMarkdownContainer"] p, p, label, .stSelectbox div {
-        color: #222222 !important;
+        color: #94a3b8 !important;
     }
     h1, h2, h3, h4, h5, h6, strong {
-        color: #111111 !important;
-        font-weight: 700 !important;
+        color: #ffffff !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.5px !important;
     }
+    /* Stadium LED Style Ticker */
+    .ticker-wrap {
+        background: #000000;
+        padding: 14px;
+        border-radius: 4px;
+        margin-bottom: 30px;
+        border-left: 4px solid #ccff00;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    /* KPI Display Panel Grid */
     .kpi-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 20px;
-        margin-bottom: 30px;
+        margin-bottom: 35px;
     }
     .kpi-card {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #e9ecef;
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        background: #121721;
+        padding: 24px;
+        border-radius: 6px;
+        border: 1px solid #1e293b;
+        text-align: left;
+        border-bottom: 3px solid #1e293b;
     }
-    .kpi-value {
-        font-size: 2.2rem;
+    /* Streamlined Performance List Flashcard System */
+    .flashcard-row {
+        background: #121721;
+        border: 1px solid #1e293b;
+        border-radius: 6px;
+        padding: 16px 24px;
+        margin-bottom: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        border-left: 4px solid #00f0ff;
+    }
+    .flashcard-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        min-width: 250px;
+    }
+    .flashcard-icon {
+        background: rgba(0, 240, 255, 0.1);
+        color: #00f0ff;
+        padding: 10px;
+        border-radius: 50%;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .flashcard-date-block {
+        line-height: 1.2;
+    }
+    .flashcard-date-main {
+        color: #ffffff;
         font-weight: 800;
-        color: #0076d6 !important;
+        font-size: 1.05rem;
     }
-    .kpi-label {
-        font-size: 0.85rem;
-        color: #6c757d !important;
+    .flashcard-date-sub {
+        color: #64748b;
+        font-size: 0.75rem;
+        font-family: monospace;
+    }
+    .flashcard-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+    .flashcard-category {
+        font-size: 0.7rem;
+        color: #ccff00;
         text-transform: uppercase;
-        letter-spacing: 1.2px;
-        margin-top: 5px;
+        letter-spacing: 1px;
     }
-    .ticker-wrap {
-        background: #111111;
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        overflow: hidden;
-        box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+    .flashcard-metrics-group {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+    .flashcard-metric {
+        text-align: center;
+        min-width: 80px;
+    }
+    .flashcard-metric-val {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #ffffff;
+        font-family: monospace;
+    }
+    .flashcard-metric-lbl {
+        font-size: 0.65rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -69,11 +138,23 @@ def load_garmin_data():
         return None
     try:
         df = pd.read_csv("activities.csv")
-        
         cols = list(df.columns)
+        
+        # Locate core data series
         date_col = [c for c in cols if 'Date' in c or 'Time' in c or 'Start' in c][0]
         dist_col = [c for c in cols if 'Distance' in c][0]
         pace_col = [c for c in cols if 'Pace' in c or 'Speed' in c][0]
+        
+        # Safely extract supplementary metrics seen in image_ee5dbb.png
+        title_matches = [c for c in cols if 'Title' in c or 'Name' in c]
+        time_matches = [c for c in cols if 'Duration' in c or 'Time' in c]
+        hr_matches = [c for c in cols if 'Heart' in c or 'HR' in c or 'bpm' in c]
+        tag_matches = [c for c in cols if 'Tag' in c or 'Race' in c]
+        
+        df['Race_Tag'] = df[tag_matches[0]] if tag_matches else None
+        df['Activity_Title'] = df[title_matches[0]] if title_matches else "Mumbai Running"
+        df['Duration_Raw'] = df[time_matches[0]] if time_matches else "--:--"
+        df['Heart_Rate'] = df[hr_matches[0]] if hr_matches else None
         
         df['Date'] = pd.to_datetime(df[date_col])
         df['Year'] = df['Date'].dt.year
@@ -107,138 +188,125 @@ def load_garmin_data():
 
 df = load_garmin_data()
 
-# MAIN HEADER BLOCK
-st.markdown("<h1 style='text-align: center; color: #111111;'>🏃‍♂️ Running Journey</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #6c757d !important;'>A streamlined dashboard of your lifelong endurance achievements.</p>", unsafe_allow_html=True)
+# HEADER ARCHITECTURE
+st.markdown("<h1 style='text-align: left; color: #ffffff; font-size: 2.8rem; font-weight: 900; margin-bottom:0px;'>RUNNING JOURNEY // ENGINE</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: left; color: #ccff00 !important; font-weight:700; letter-spacing:1px; margin-top:5px;'>MUTATION // ENDURANCE // LIFELONG PERFORMANCE ARCHIVE</p>", unsafe_allow_html=True)
+st.markdown("<hr style='border-color: #1e293b; margin-top: 15px; margin-bottom: 25px;'>", unsafe_allow_html=True)
 
 if df is None:
-    st.error("Missing 'activities.csv' data file link.")
+    st.error("Awaiting valid data connection parameter sync.")
 else:
-    # 3. DYNAMIC TARGETED BENCHMARKS TICKER TAPE
-    ticker_items = []
+    # 3. CONTROL BAR PANEL (TOP-LEVEL GLOBAL FILTERS)
+    st.markdown("### 🎛️ CONTROL CENTER")
+    filter_col1, filter_col2 = st.columns(2)
     
-    # Extract Best 10K
+    with filter_col1:
+        year_list = ["ALL TIME"] + [str(y) for y in sorted(df['Year'].unique(), reverse=True)]
+        selected_year = st.selectbox("ISOLATE REGISTRATION YEAR:", options=year_list)
+        
+    with filter_col2:
+        cat_list = ["ALL CATEGORIES"] + sorted(list(df['Category'].unique()))
+        selected_cat = st.selectbox("ISOLATE DISTANCE THRESHOLD:", options=cat_list)
+        
+    # Execute cross-filter sequencing
+    f_df = df.copy()
+    if selected_year != "ALL TIME":
+        f_df = f_df[f_df['Year'] == int(selected_year)]
+    if selected_cat != "ALL CATEGORIES":
+        f_df = f_df[f_df['Category'] == selected_cat]
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 4. STADIUM LED TICKER (ALL-TIME PR RECORDS - NOT OVERRIDDEN BY FILTER)
+    ticker_items = []
     df_10k = df[(df['Distance_KM'] >= 9.5) & (df['Distance_KM'] <= 11.5) & (df['Pace_Decimal'].notna())]
     if not df_10k.empty:
         best_10k = df_10k.loc[df_10k['Pace_Decimal'].idxmin()]
-        p_min = int(best_10k['Pace_Decimal'])
-        p_sec = int((best_10k['Pace_Decimal'] % 1) * 60)
-        r_date = best_10k['Date'].strftime('%d %b %Y')
-        d_val = best_10k['Distance_KM']
-        ticker_items.append(f"🎯 BEST 10K: {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
+        p_min, p_sec = int(best_10k['Pace_Decimal']), int((best_10k['Pace_Decimal'] % 1) * 60)
+        ticker_items.append(f"PR_10K: {best_10k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
         
-    # Extract Best 21K Half Marathon
     df_21k = df[(df['Distance_KM'] >= 20.5) & (df['Distance_KM'] <= 22.5) & (df['Pace_Decimal'].notna())]
     if not df_21k.empty:
         best_21k = df_21k.loc[df_21k['Pace_Decimal'].idxmin()]
-        p_min = int(best_21k['Pace_Decimal'])
-        p_sec = int((best_21k['Pace_Decimal'] % 1) * 60)
-        r_date = best_21k['Date'].strftime('%d %b %Y')
-        d_val = best_21k['Distance_KM']
-        ticker_items.append(f"🥈 BEST HALF MARATHON (21K): {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
+        p_min, p_sec = int(best_21k['Pace_Decimal']), int((best_21k['Pace_Decimal'] % 1) * 60)
+        ticker_items.append(f"PR_21K: {best_21k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
         
-    # Extract Best Full Marathon
     df_42k = df[(df['Distance_KM'] >= 41.0) & (df['Pace_Decimal'].notna())]
     if not df_42k.empty:
         best_42k = df_42k.loc[df_42k['Pace_Decimal'].idxmin()]
-        p_min = int(best_42k['Pace_Decimal'])
-        p_sec = int((best_42k['Pace_Decimal'] % 1) * 60)
-        r_date = best_42k['Date'].strftime('%d %b %Y')
-        d_val = best_42k['Distance_KM']
-        ticker_items.append(f"🏆 BEST FULL MARATHON: {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
+        p_min, p_sec = int(best_42k['Pace_Decimal']), int((best_42k['Pace_Decimal'] % 1) * 60)
+        ticker_items.append(f"PR_FULL: {best_42k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
         
     if ticker_items:
-        spacer = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
+        spacer = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
         full_ticker_text = spacer.join(ticker_items)
         st.markdown(f"""
             <div class="ticker-wrap">
-                <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #0076d6; font-weight: 700; font-family: monospace; font-size: 1.1rem;">
-                    🥇 DISTANCE MILESTONE BENCHMARKS &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {full_ticker_text}
+                <marquee behavior="scroll" direction="left" scrollamount="6" style="color: #ccff00; font-weight: 800; font-family: monospace; font-size: 1.1rem;">
+                    ALL-TIME BENCHMARKS // {full_ticker_text}
                 </marquee>
             </div>
         """, unsafe_allow_html=True)
 
-    # 4. CORE METRICS DISPLAY PANEL
-    total_runs = len(df)
-    total_km = df['Distance_KM'].sum()
-    avg_run_dist = df['Distance_KM'].mean()
+    # 5. DYNAMIC CARBON KPI PANEL (RESPONDS TO FILTERS)
+    total_runs = len(f_df)
+    total_km = f_df['Distance_KM'].sum()
+    avg_run_dist = f_df['Distance_KM'].mean() if total_runs > 0 else 0
+    tracked_years = f_df['Year'].nunique()
     
     st.markdown(f"""
         <div class="kpi-container">
             <div class="kpi-card">
                 <div class="kpi-value">{total_runs}</div>
-                <div class="kpi-label">Lifetime Runs</div>
+                <div class="kpi-label">// INDEXED_ACTIVITIES</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-value">{total_km:,.1f} KM</div>
-                <div class="kpi-label">Total Volume Conquered</div>
+                <div class="kpi-label">// TARGET_VOLUME_CONQUERED</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-value">{avg_run_dist:.2f} KM</div>
-                <div class="kpi-label">Avg Distance / Run</div>
+                <div class="kpi-label">// MEAN_SESSION_DISTANCE</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-value">{df['Year'].nunique()}</div>
-                <div class="kpi-label">Years Tracked</div>
+                <div class="kpi-value">{tracked_years}</div>
+                <div class="kpi-label">// FILTER_ACTIVE_YEARS</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # 5. VISUALIZATION ROW 1: YEAR-ON-YEAR & REFINED CATEGORIES
+    # 6. VISUALIZATION ROW 1
     col1, col2 = st.columns(2)
-    
     with col1:
-        st.markdown("### 📊 Year-on-Year Training Volume")
-        yoy_volume = df.groupby('Year')['Distance_KM'].sum().reset_index()
+        st.markdown("### 📊 CHRONO TRAINING VOLUME")
+        yoy_volume = f_df.groupby('Year')['Distance_KM'].sum().reset_index()
         yoy_volume['Year'] = yoy_volume['Year'].astype(str)
         
-        colors = ['#0076d6', '#10b981', '#ff6b6b']
         fig_yoy = px.bar(
-            yoy_volume,
-            x='Year',
-            y='Distance_KM',
-            text_auto='.1f',
-            color='Year',
-            color_discrete_sequence=colors
+            yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
+            color='Year', color_discrete_sequence=['#00f0ff', '#ccff00', '#ff4757']
         )
-        fig_yoy.update_layout(template="plotly_white")
-        fig_yoy.update_layout(paper_bgcolor="rgba(0,0,0,0)")
-        fig_yoy.update_layout(plot_bgcolor="rgba(0,0,0,0)")
-        fig_yoy.update_layout(yaxis_title="Total Distance (KM)")
+        fig_yoy.update_layout(template="plotly_dark")
+        fig_yoy.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig_yoy.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
         fig_yoy.update_layout(showlegend=False)
         st.plotly_chart(fig_yoy, use_container_width=True)
 
     with col2:
-        st.markdown("### 🗂️ Run Count by Category")
+        st.markdown("### 🗂️ DISTRIBUTION MATRIX")
         cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "Between 10K and 21K ⚡", "10K Runs 🎯", "Less than 10K 🌱"]
-        cat_counts = df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
+        cat_counts = f_df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
         cat_counts.columns = ['Category', 'Runs']
         
-        fig_cat = px.bar(
-            cat_counts,
-            x='Runs',
-            y='Category',
-            orientation='h',
-            color_discrete_sequence=['#14b8a6']
-        )
-        fig_cat.update_layout(template="plotly_white")
-        fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)")
-        fig_cat.update_layout(plot_bgcolor="rgba(0,0,0,0)")
-        fig_cat.update_layout(xaxis_title="Number of Activities")
-        fig_cat.update_layout(yaxis_title="")
+        fig_cat = px.bar(cat_counts, x='Runs', y='Category', orientation='h', color_discrete_sequence=['#ccff00'])
+        fig_cat.update_layout(template="plotly_dark")
+        fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig_cat.update_layout(xaxis_title="FREQUENCY", yaxis_title="")
         st.plotly_chart(fig_cat, use_container_width=True)
 
-    st.markdown("<hr style='border-color: #e9ecef; margin-top: 30px; margin-bottom: 30px;'>", unsafe_allow_html=True)
-
-    # 6. VISUALIZATION ROW 2: MONTH-ONLY TIMELINE MATRIX
-    st.markdown("### 📅 Monthly Volume Breakdown")
-    
-    available_years = sorted(df['Year'].unique(), reverse=True)
-    selected_year = st.selectbox("Choose Year to View Monthly Splits:", options=available_years)
-    
-    m_df = df[df['Year'] == selected_year]
-    monthly_grouped = m_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
-    
+    # 7. VISUALIZATION ROW 2: MONTHLY COMPONENT
+    st.markdown("### 📅 INTRA-ANNUAL SPLITS")
+    monthly_grouped = f_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
     all_months = pd.DataFrame({
         'Month_Num': range(1, 13),
         'Month_Name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -246,16 +314,78 @@ else:
     monthly_volume = pd.merge(all_months, monthly_grouped, on=['Month_Num', 'Month_Name'], how='left').fillna(0)
     
     fig_month = px.bar(
-        monthly_volume,
-        x='Month_Name',
-        y='Distance_KM',
-        text_auto='.1f',
-        color_discrete_sequence=['#4f46e5']
+        monthly_volume, x='Month_Name', y='Distance_KM', 
+        text_auto='.1f', color_discrete_sequence=['#00f0ff']
     )
-    fig_month.update_layout(template="plotly_white")
-    fig_month.update_layout(paper_bgcolor="rgba(0,0,0,0)")
-    fig_month.update_layout(plot_bgcolor="rgba(0,0,0,0)")
-    fig_month.update_layout(yaxis_title="Distance (KM)")
-    fig_month.update_layout(xaxis_title="Months")
+    fig_month.update_layout(template="plotly_dark")
+    fig_month.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    fig_month.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
     fig_month.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': all_months['Month_Name']})
     st.plotly_chart(fig_month, use_container_width=True)
+
+    st.markdown("<hr style='border-color: #1e293b; margin-top: 40px; margin-bottom: 40px;'>", unsafe_allow_html=True)
+
+    # 8. DECK ARCHITECTURE: PERFORMANCE FLASHCARDS (BOTTOM LAYER)
+    st.markdown("### 📋 ACTIVITY FEED // RECONSTRUCTION")
+    
+    if f_df.empty:
+        st.warning("No metrics matched your current cross-filter parameters.")
+    else:
+        # Sort chronologically backwards (newest activities first) as seen in image_ee5dbb.png
+        sorted_cards = f_df.sort_values(by='Date', ascending=False)
+        
+        # Performance pagination safety check (renders latest 50 match targets)
+        display_limit = 50
+        for idx, (_, row) in enumerate(sorted_cards.head(display_limit).iterrows()):
+            # Parse Date Formats cleanly
+            date_main = row['Date'].strftime('%b %d')
+            date_sub = row['Date'].strftime('%Y')
+            
+            # Format Pacing String
+            p_val = row['Pace_Decimal']
+            p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
+            
+            # Optional Heart Rate Badge
+            hr_val = row['Heart_Rate']
+            hr_str = f"{int(hr_val)} bpm" if pd.notna(hr_val) and hr_val > 0 else "--"
+            
+            # Identify special tag lines
+            race_label = f" // 🏆 {row['Race_Tag']}" if pd.notna(row['Race_Tag']) else ""
+            
+            # Render layout block resembling image_ee5dbb.png template structural styles
+            st.markdown(f"""
+                <div class="flashcard-row">
+                    <div class="flashcard-left">
+                        <div class="flashcard-icon">🏃‍♂️</div>
+                        <div class="flashcard-date-block">
+                            <div class="flashcard-date-main">{date_main}</div>
+                            <div class="flashcard-date-sub">{date_sub}</div>
+                        </div>
+                        <div>
+                            <div class="flashcard-title">{row['Activity_Title']}{race_label}</div>
+                            <div class="flashcard-category">{row['Category']}</div>
+                        </div>
+                    </div>
+                    <div class="flashcard-metrics-group">
+                        <div class="flashcard-metric">
+                            <div class="flashcard-metric-val">{row['Distance_KM']:.2f} km</div>
+                            <div class="flashcard-metric-lbl">Distance</div>
+                        </div>
+                        <div class="flashcard-metric">
+                            <div class="flashcard-metric-val">{row['Duration_Raw']}</div>
+                            <div class="flashcard-metric-lbl">Time</div>
+                        </div>
+                        <div class="flashcard-metric">
+                            <div class="flashcard-metric-val">{p_str}</div>
+                            <div class="flashcard-metric-lbl">Avg Pace</div>
+                        </div>
+                        <div class="flashcard-metric">
+                            <div class="flashcard-metric-val" style="color: #ff4757;">{hr_str}</div>
+                            <div class="flashcard-metric-lbl">Avg HR</div>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        if len(sorted_cards) > display_limit:
+            st.markdown(f"<p style='text-align:center; color:#64748b;'>Truncated at {display_limit} activities to optimize layout throughput.</p>", unsafe_allow_html=True)
