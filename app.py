@@ -1,247 +1,359 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 import os
 
-# 1. PREMIUM ATHLETIC MINIMALIST PAGE SETUP
-st.set_page_config(
-    page_title="RUNNING JOURNEY // METRIC ENGINE",
-    layout="wide"
-)
+# ============================================================
+# RUNNING JOURNEY // METRIC ENGINE
+# Stadium-dark aesthetic preserved; data engine rebuilt on the
+# full Strava export (pace, cadence-spm, training load, etc.)
+# ============================================================
+st.set_page_config(page_title="RUNNING JOURNEY // METRIC ENGINE", layout="wide")
 
-# Custom typography, prominent navigation tabs, and styled containers
+# ---- DESIGN TOKENS (unchanged identity) --------------------
+LIME = "#ccff00"; CYAN = "#00f0ff"; RED = "#ff4757"
+INK = "#0b0e14"; CARD = "#121721"; LINE = "#1e293b"; MUTE = "#64748b"
+YEAR_COLORS = {"2022": "#475569", "2023": "#334155", "2024": CYAN, "2025": RED, "2026": LIME}
+CADENCE_TARGET = 174  # spm goal
+
 st.markdown("""
 <style>
-.stApp {
-    background-color: #0b0e14 !important;
-    color: #e2e8f0 !important;
-    font-family: 'Inter', system-ui, sans-serif !important;
-}
-html, body, [data-testid="stMarkdownContainer"] p, p, label, .stSelectbox div {
-    color: #94a3b8 !important;
-}
-h1, h2, h3, h4, h5, h6, strong {
-    color: #ffffff !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1.5px !important;
-}
-
-/* HIGH-PROMINENCE SPORTS TABS NAVIGATION */
-div[data-testid="stTabs"] button {
-    font-size: 1.2rem !important;
-    font-weight: 800 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1.5px !important;
-    color: #64748b !important;
-    padding: 14px 28px !important;
-    border-bottom: 2px solid #1e293b !important;
-    transition: all 0.3s ease !important;
-}
-div[data-testid="stTabs"] button[aria-selected="true"] {
-    color: #ccff00 !important;
-    border-bottom: 3px solid #ccff00 !important;
-    background-color: #121721 !important;
-}
-div[data-testid="stTabs"] button:hover {
-    color: #ffffff !important;
-    border-bottom-color: #00f0ff !important;
-}
-
-/* Stadium Style Ticker */
-.ticker-wrap {
-    background: #000000;
-    padding: 14px;
-    border-radius: 4px;
-    margin-bottom: 30px;
-    border-left: 4px solid #ccff00;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-}
-/* KPI Metric Containers */
-.kpi-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    margin-bottom: 35px;
-}
-.kpi-card {
-    background: #121721;
-    padding: 24px;
-    border-radius: 6px;
-    border: 1px solid #1e293b;
-    text-align: left;
-    border-bottom: 3px solid #1e293b;
-}
-.kpi-value {
-    font-size: 2.4rem;
-    font-weight: 900;
-    color: #ffffff !important;
-    line-height: 1;
-    font-family: monospace;
-}
-.kpi-label {
-    font-size: 0.75rem;
-    color: #ccff00 !important;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-top: 8px;
-    font-weight: 700;
-}
-/* Modern Content Box Container Wrapper */
-.chart-container-box {
-    background-color: #121721 !important;
-    border: 1px solid #1e293b !important;
-    border-radius: 8px !important;
-    padding: 24px !important;
-    margin-bottom: 25px !important;
-}
-/* Flashcard Base Styling classes */
-.flashcard-row-base {
-    border: 1px solid #1e293b;
-    border-radius: 6px;
-    padding: 16px 24px;
-    margin-bottom: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-}
-.flashcard-left {
-    display: flex;
-    align-items: center;
-    gap: 25px;
-    min-width: 250px;
-}
-.flashcard-date-block {
-    line-height: 1.2;
-}
-.flashcard-date-main {
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 1.05rem;
-}
-.flashcard-date-sub {
-    color: #64748b;
-    font-size: 0.75rem;
-    font-family: monospace;
-}
-.flashcard-title {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: #ffffff;
-}
-.flashcard-category {
-    font-size: 0.7rem;
-    color: #ccff00;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-.flashcard-metrics-group {
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    flex-wrap: wrap;
-}
-.flashcard-metric {
-    text-align: center;
-    min-width: 80px;
-}
-.flashcard-metric-val {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #ffffff;
-    font-family: monospace;
-}
-.flashcard-metric-lbl {
-    font-size: 0.65rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 2px;
-}
+.stApp { background-color: #0b0e14 !important; color: #e2e8f0 !important;
+    font-family: 'Inter', system-ui, sans-serif !important; }
+html, body, [data-testid="stMarkdownContainer"] p, p, label, .stSelectbox div { color: #94a3b8 !important; }
+h1,h2,h3,h4,h5,h6,strong { color:#fff !important; text-transform:uppercase !important; letter-spacing:1.5px !important; }
+div[data-testid="stTabs"] button { font-size:1.05rem !important; font-weight:800 !important; text-transform:uppercase !important;
+    letter-spacing:1.2px !important; color:#64748b !important; padding:14px 22px !important; border-bottom:2px solid #1e293b !important; transition:all .3s ease !important; }
+div[data-testid="stTabs"] button[aria-selected="true"] { color:#ccff00 !important; border-bottom:3px solid #ccff00 !important; background-color:#121721 !important; }
+div[data-testid="stTabs"] button:hover { color:#fff !important; border-bottom-color:#00f0ff !important; }
+.ticker-wrap { background:#000; padding:14px; border-radius:4px; margin-bottom:30px; border-left:4px solid #ccff00; box-shadow:0 4px 20px rgba(0,0,0,.5); }
+.kpi-container { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px; margin-bottom:30px; }
+.kpi-card { background:#121721; padding:22px; border-radius:6px; border:1px solid #1e293b; border-bottom:3px solid #1e293b; }
+.kpi-card.accent { border-bottom-color:#ccff00; }
+.kpi-value { font-size:2.2rem; font-weight:900; color:#fff !important; line-height:1; font-family:monospace; }
+.kpi-label { font-size:.72rem; color:#ccff00 !important; text-transform:uppercase; letter-spacing:1.5px; margin-top:8px; font-weight:700; }
+.kpi-sub { font-size:.7rem; color:#64748b !important; font-family:monospace; margin-top:4px; }
+.chart-container-box { background:#121721 !important; border:1px solid #1e293b !important; border-radius:8px !important; padding:22px !important; margin-bottom:22px !important; }
+.pb-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:18px; margin-bottom:26px; }
+.pb-card { background:linear-gradient(160deg,#161d2a,#0f1420); border:1px solid #1e293b; border-radius:8px; padding:22px; border-top:3px solid #ccff00; }
+.pb-dist { font-size:.75rem; color:#ccff00; font-weight:800; letter-spacing:2px; font-family:monospace; }
+.pb-time { font-size:2.3rem; font-weight:900; color:#fff; font-family:monospace; line-height:1.05; margin-top:6px; }
+.pb-meta { font-size:.72rem; color:#64748b; font-family:monospace; margin-top:8px; }
+.race-row { padding:16px 22px; border-radius:6px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; }
+.flashcard-row-base { border:1px solid #1e293b; border-radius:6px; padding:14px 22px; margin-bottom:10px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:15px; }
+.flashcard-metrics-group { display:flex; align-items:center; gap:26px; flex-wrap:wrap; }
+.flashcard-metric { text-align:center; min-width:64px; }
+.flashcard-metric-val { font-size:1.05rem; font-weight:800; color:#fff; font-family:monospace; }
+.flashcard-metric-lbl { font-size:.62rem; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. CORE DATA READING ENGINE
+
+# ============================================================
+# DATA ENGINE
+# ============================================================
+RACE_REGISTRY = {
+    "2023-01-15": {"name": "Tata Mumbai Marathon 5.9K", "bib": "81094", "note": ""},
+    "2023-02-12": {"name": "Thane Half Marathon", "bib": "21559", "note": ""},
+    "2023-11-19": {"name": "Indian Navy 10K", "bib": "12114", "note": ""},
+    "2024-01-21": {"name": "Tata Mumbai Marathon 21K", "bib": "26504", "note": ""},
+    "2024-04-28": {"name": "TCS World 10K Bengaluru", "bib": "3970", "note": "PR EFFORT // 59 MINS"},
+    "2024-09-01": {"name": "Satara Half Hill Marathon", "bib": "25051", "note": ""},
+    "2024-10-20": {"name": "Vedanta Delhi Half Marathon", "bib": "3258", "note": ""},
+    "2024-12-08": {"name": "Indian Navy 21K", "bib": "23781", "note": ""},
+    "2024-12-15": {"name": "Tata Steel World 25k Kolkata", "bib": "4653", "note": ""},
+    "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": "PR EFFORT"},
+    "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": "PR EFFORT"},
+    "2025-12-21": {"name": "Tata Steel World 25k Kolkata", "bib": "4895", "note": ""},
+    "2026-01-18": {"name": "Tata Mumbai Full Marathon", "bib": "11435", "note": ""},
+    "2026-04-26": {"name": "TCS World 10K Bengaluru", "bib": "32357", "note": "PROCAM SLAM COMPLETED"},
+}
+
+DATA_CANDIDATES = ["activities.csv", "Activities.csv", "data/activities.csv"]
+
+def hms_to_label(sec):
+    if pd.isna(sec): return "--"
+    sec = int(sec); h = sec//3600; m = (sec%3600)//60
+    return f"{h}h {m:02d}m" if h else f"{m}m"
+
 @st.cache_data
-def load_garmin_data():
-    if not os.path.exists("Activities.csv"):
+def load_data():
+    path = next((p for p in DATA_CANDIDATES if os.path.exists(p)), None)
+    if path is None:
         return None
-    try:
-        df = pd.read_csv("Activities.csv")
-        df['Date_Parsed'] = pd.to_datetime(df['date'])
-        
-        # -----------------------------------------------------------------
-        # OFFICIAL COMPETITIVE PROFILE REGISTRY
-        # -----------------------------------------------------------------
-        RACE_REGISTRY = {
-            "2023-01-15": {"name": "Tata Mumbai Marathon 5.9K", "bib": "81094", "note": ""},
-            "2023-02-12": {"name": "Thane Half Marathon", "bib": "21559", "note": ""},
-            "2023-11-19": {"name": "Indian Navy 10K", "bib": "12114", "note": ""},
-            "2024-01-21": {"name": "Tata Mumbai Marathon 21K", "bib": "26504", "note": ""},
-            "2024-04-28": {"name": "TCS World 10K Bengaluru", "bib": "3970", "note": "PR EFFORT // 59 MINS"},
-            "2024-09-01": {"name": "Satara Half Hill Marathon", "bib": "25051", "note": ""},
-            "2024-10-20": {"name": "Vedanta Delhi Half Marathon", "bib": "3258", "note": ""},
-            "2024-12-08": {"name": "Indian Navy 21K", "bib": "23781", "note": ""},
-            "2024-12-15": {"name": "Tata Steel World 25k Kolkata", "bib": "4653", "note": ""},
-            "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": "PR EFFORT"},
-            "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": "PR EFFORT"},
-            "2025-12-21": {"name": "Tata Steel World 25k Kolkata", "bib": "4895", "note": ""},
-            "2026-01-18": {"name": "Tata Mumbai Full Marathon", "bib": "11435", "note": ""},
-            "2026-04-26": {"name": "TCS World 10K Bengaluru", "bib": "32357", "note": "PROCAM SLAM COMPLETED"},
-            "2026-08-30": {"name": "Sydney Marathon 2026", "bib": "TBD", "note": "UPCOMING // TARGET RACE"}
-        }
-        
-        date_str_series = df['Date_Parsed'].dt.strftime('%Y-%m-%d')
-        df['Race_Tag'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['name'] if x in RACE_REGISTRY else None)
-        df['Race_Bib'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['bib'] if x in RACE_REGISTRY else None)
-        df['Race_Note'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['note'] if x in RACE_REGISTRY else None)
-        
-        def segment_run(km):
-            if km >= 42.0: return "Full Marathon"
-            elif km >= 21.2: return "Between Half and Full"
-            elif km >= 21.0: return "Half Marathon"
-            elif km > 10.5: return "Between 10K and 21K"
-            elif km >= 9.8: return "10K Runs"
-            else: return "Less than 10K"
-            
-        df['Category_Custom'] = df['distance_km'].apply(segment_run)
-        return df
-    except Exception as e:
-        return None
+    df = pd.read_csv(path)
+    df["Date_Parsed"] = pd.to_datetime(df["date"])
+    # robust numeric coercion (cleaned cells can be blank)
+    for c in ["distance_km","moving_time_s","pace_min_per_km","cadence_spm","relative_effort",
+              "fatigue_atl","fitness_ctl","form","elevation_gain_m","calories","kudos","hour"]:
+        if c in df.columns: df[c] = pd.to_numeric(df[c], errors="coerce")
 
-df = load_garmin_data()
+    def segment_run(km):
+        if km >= 42.0: return "Full Marathon"
+        elif km >= 21.2: return "Between Half and Full"
+        elif km >= 21.0: return "Half Marathon"
+        elif km > 10.5: return "Between 10K and 21K"
+        elif km >= 9.8: return "10K Runs"
+        else: return "Less than 10K"
+    df["Category_Custom"] = df["distance_km"].apply(segment_run)
 
-# HEADER TERMINAL
+    ds = df["Date_Parsed"].dt.strftime("%Y-%m-%d")
+    df["Race_Tag"]  = ds.map(lambda x: RACE_REGISTRY.get(x, {}).get("name"))
+    df["Race_Bib"]  = ds.map(lambda x: RACE_REGISTRY.get(x, {}).get("bib"))
+    df["Race_Note"] = ds.map(lambda x: RACE_REGISTRY.get(x, {}).get("note"))
+    df["weekday"] = df.get("weekday", df["Date_Parsed"].dt.strftime("%a"))
+    return df
+
+def best_effort(runs, lo, hi):
+    """Fastest (min moving_time) run within a distance band."""
+    b = runs[(runs["distance_km"] >= lo) & (runs["distance_km"] <= hi) & (runs["moving_time_s"] > 0)]
+    if b.empty: return None
+    return b.loc[b["moving_time_s"].idxmin()]
+
+PB_BANDS = [("5K",4.9,5.3),("10K",9.7,10.6),("HALF",20.9,21.6),("FULL",41.9,43.5)]
+
+CHART = dict(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+             margin=dict(l=10,r=10,t=20,b=10), font=dict(family="Inter, sans-serif", size=12, color="#94a3b8"),
+             showlegend=False)
+
+def grid(fig):
+    fig.update_layout(**CHART)
+    fig.update_xaxes(showgrid=False, title_text="")
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(30,41,59,.45)", zeroline=False, title_text="")
+    return fig
+
+
+df = load_data()
+
+# ---- HEADER ------------------------------------------------
 st.markdown("<h1 style='color:#fff;font-size:2.8rem;font-weight:900;margin-bottom:0;'>RUNNING JOURNEY</h1>", unsafe_allow_html=True)
 st.markdown("<p style='color:#ccff00 !important;font-weight:700;letter-spacing:1px;margin-top:5px;'>ENDURANCE ARCHIVE // PERFORMANCE LOG</p>", unsafe_allow_html=True)
 st.markdown("<hr style='border-color:#1e293b;margin:15px 0 25px;'>", unsafe_allow_html=True)
 
 if df is None:
-    st.error("No data file found."); st.stop()
+    st.error("No data file found. Add `activities.csv` to the repo root and redeploy.")
+    st.stop()
 
-# CONTROL CENTER
-c1, c2 = st.columns(2)
-with c1: selected_year = st.selectbox("YEAR:", ["ALL TIME"] + [str(y) for y in sorted(df['year'].unique(), reverse=True)])
-with c2: selected_cat = st.selectbox("DISTANCE:", ["ALL CATEGORIES"] + ["Full Marathon", "Half Marathon", "10K Runs", "Less than 10K"])
+# ---- CONTROL CENTER ---------------------------------------
+st.markdown("### CONTROL CENTER")
+c1, c2, c3 = st.columns(3)
+with c1:
+    years = ["ALL TIME"] + [str(y) for y in sorted(df["year"].unique(), reverse=True)]
+    sel_year = st.selectbox("YEAR:", years)
+with c2:
+    cats = ["ALL CATEGORIES","Full Marathon","Between Half and Full","Half Marathon","Between 10K and 21K","10K Runs","Less than 10K"]
+    sel_cat = st.selectbox("DISTANCE:", cats)
+with c3:
+    sports = ["RUNS ONLY","ALL ACTIVITIES"]
+    sel_sport = st.selectbox("ACTIVITY TYPE:", sports)
 
-f_df = df.copy()
-if selected_year != "ALL TIME": f_df = f_df[f_df['year'] == int(selected_year)]
-if selected_cat != "ALL CATEGORIES": f_df = f_df[f_df['Category_Custom'] == selected_cat]
+f = df.copy()
+if sel_sport == "RUNS ONLY":
+    f = f[f["sport_type"] == "Run"]
+if sel_year != "ALL TIME":
+    f = f[f["year"] == int(sel_year)]
+if sel_cat != "ALL CATEGORIES":
+    f = f[f["Category_Custom"] == sel_cat]
+runs_f = f[f["sport_type"] == "Run"].copy()        # analytics base
+runs_all = df[df["sport_type"] == "Run"].copy()     # all-time, for records
 
-# TABS
-tab_dashboard, tab_registry, tab_feed = st.tabs(["Overview and Analytics", "Race Registry", "Activity Feed Log"])
+st.markdown("<br>", unsafe_allow_html=True)
 
-with tab_dashboard:
-    st.markdown(f"""<div class="kpi-container"><div class="kpi-card"><div class="kpi-value">{len(f_df)}</div><div class="kpi-label">// RUNS</div></div><div class="kpi-card"><div class="kpi-value">{f_df['distance_km'].sum():,.0f}</div><div class="kpi-label">// KM TOTAL</div></div></div>""", unsafe_allow_html=True)
+# ---- STADIUM TICKER (now computed from data) --------------
+tick = []
+labels = {"5K":"5K","10K":"10K","HALF":"HALF MARATHON","FULL":"FULL MARATHON"}
+for key, lo, hi in PB_BANDS:
+    r = best_effort(runs_all, lo, hi)
+    if r is not None:
+        tick.append(f"PR {labels[key]}: {r['moving_time_hms']} @ {r['pace_str']}/KM ({r['Date_Parsed'].strftime('%b %Y')})")
+if tick:
+    txt = " &nbsp;&nbsp; // &nbsp;&nbsp; ".join(tick)
+    st.markdown(f"""<div class="ticker-wrap"><marquee behavior="scroll" direction="left" scrollamount="6"
+      style="color:#ccff00;font-weight:800;font-family:monospace;font-size:1.05rem;">ALL-TIME RECORD BENCHMARKS &nbsp;&nbsp; // &nbsp;&nbsp; {txt}</marquee></div>""", unsafe_allow_html=True)
 
-with tab_registry:
-    races = f_df[f_df['Race_Tag'].notna()].sort_values(by='Date_Parsed', ascending=False)
-    for _, row in races.iterrows():
-        is_full = row['Category_Custom'] == "Full Marathon"
-        st.markdown(f"""<div style='background:{"#1a1215" if is_full else "#161d2a"}; padding:18px; border-radius:6px; margin-bottom:12px; border-left:4px solid {"#ff4757" if is_full else "#ccff00"};'>
-        <div style='color:#fff; font-weight:800;'>{row['Race_Tag']}</div><div style='color:#64748b; font-size:0.75rem;'>{row['Date_Parsed'].strftime('%B %d, %Y')}</div></div>""", unsafe_allow_html=True)
+# ============================================================
+# NAVIGATION
+# ============================================================
+t_over, t_trend, t_rec, t_pat, t_feed = st.tabs(
+    ["Overview", "Trends", "Records", "Patterns", "Activity Feed"])
 
-with tab_feed:
-    for _, row in f_df.sort_values(by='Date_Parsed', ascending=False).head(20).iterrows():
-        st.markdown(f"""<div class="flashcard-row-base"><div style="color:#fff; font-weight:800;">{row['name']}</div><div>{row['distance_km']:.1f} KM</div></div>""", unsafe_allow_html=True)
+# ----------------------------- OVERVIEW ---------------------
+with t_over:
+    tot_km = runs_f["distance_km"].sum()
+    n = len(runs_f)
+    tot_time = runs_f["moving_time_s"].sum()
+    elev = runs_f["elevation_gain_m"].sum()
+    avg_pace = runs_f["pace_min_per_km"].mean()
+    pace_lbl = f"{int(avg_pace)}:{int(round((avg_pace-int(avg_pace))*60)):02d}" if pd.notna(avg_pace) else "--"
+    st.markdown(f"""<div class="kpi-container">
+      <div class="kpi-card accent"><div class="kpi-value">{tot_km:,.0f}<span style='font-size:1rem;'> KM</span></div><div class="kpi-label">// TOTAL DISTANCE</div><div class="kpi-sub">runs only</div></div>
+      <div class="kpi-card"><div class="kpi-value">{n}</div><div class="kpi-label">// RUNS LOGGED</div></div>
+      <div class="kpi-card"><div class="kpi-value">{hms_to_label(tot_time)}</div><div class="kpi-label">// TIME ON FEET</div></div>
+      <div class="kpi-card"><div class="kpi-value">{elev:,.0f}<span style='font-size:1rem;'> M</span></div><div class="kpi-label">// ELEVATION GAIN</div></div>
+      <div class="kpi-card"><div class="kpi-value">{pace_lbl}</div><div class="kpi-label">// AVG PACE /KM</div></div>
+    </div>""", unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="chart-container-box"><h3>Volume By Year</h3>', unsafe_allow_html=True)
+        yoy = runs_f.groupby("year")["distance_km"].sum().reset_index(); yoy["year"] = yoy["year"].astype(str)
+        fig = px.bar(yoy, x="year", y="distance_km", text_auto=".0f", color="year", color_discrete_map=YEAR_COLORS)
+        st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="chart-container-box"><h3>Distance Mix</h3>', unsafe_allow_html=True)
+        freq = runs_f["Category_Custom"].value_counts().reset_index()
+        freq.columns = ["Category_Custom","count"]
+        fig = px.bar(freq, x="count", y="Category_Custom", orientation="h", text_auto=".0f")
+        fig.update_traces(marker_color=LIME)
+        fig = grid(fig); fig.update_yaxes(showgrid=False)
+        st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="chart-container-box"><h3>Cumulative Distance</h3>', unsafe_allow_html=True)
+    cum = runs_f.sort_values("Date_Parsed").copy()
+    cum["cum"] = cum["distance_km"].cumsum()
+    fig = go.Figure(go.Scatter(x=cum["Date_Parsed"], y=cum["cum"], mode="lines",
+                    line=dict(color=LIME, width=2), fill="tozeroy", fillcolor="rgba(204,255,0,.08)"))
+    st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------- TRENDS -----------------------
+with t_trend:
+    # Weekly mileage
+    st.markdown('<div class="chart-container-box"><h3>Weekly Mileage</h3>', unsafe_allow_html=True)
+    wk = runs_f.set_index("Date_Parsed")["distance_km"].resample("W-MON").sum().reset_index()
+    if sel_year == "ALL TIME": wk = wk.tail(52)
+    fig = px.bar(wk, x="Date_Parsed", y="distance_km")
+    fig.update_traces(marker_color=CYAN)
+    st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+    colA, colB = st.columns(2)
+    with colA:
+        st.markdown('<div class="chart-container-box"><h3>Pace Trend</h3>', unsafe_allow_html=True)
+        p = runs_f[(runs_f["pace_min_per_km"].notna()) & (runs_f["distance_km"] >= 3)].sort_values("Date_Parsed")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=p["Date_Parsed"], y=p["pace_min_per_km"], mode="markers",
+                       marker=dict(color=MUTE, size=5), name="run"))
+        fig.add_trace(go.Scatter(x=p["Date_Parsed"], y=p["pace_min_per_km"].rolling(10, min_periods=3).mean(),
+                       mode="lines", line=dict(color=LIME, width=2.5), name="trend"))
+        fig = grid(fig); fig.update_yaxes(autorange="reversed", title_text="min/km (faster = up)")
+        st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+    with colB:
+        st.markdown('<div class="chart-container-box"><h3>Cadence Trend</h3>', unsafe_allow_html=True)
+        cc = runs_f[(runs_f["cadence_spm"].notna()) & (runs_f["cadence_spm"] > 120)].sort_values("Date_Parsed")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=cc["Date_Parsed"], y=cc["cadence_spm"], mode="markers",
+                       marker=dict(color=MUTE, size=5)))
+        fig.add_trace(go.Scatter(x=cc["Date_Parsed"], y=cc["cadence_spm"].rolling(10, min_periods=3).mean(),
+                       mode="lines", line=dict(color=CYAN, width=2.5)))
+        fig.add_hline(y=CADENCE_TARGET, line_dash="dash", line_color=RED,
+                      annotation_text=f"TARGET {CADENCE_TARGET} SPM", annotation_font_color=RED)
+        fig = grid(fig); fig.update_yaxes(title_text="spm")
+        st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+    # Training load model (CTL / ATL / Form)
+    st.markdown('<div class="chart-container-box"><h3>Fitness · Fatigue · Form</h3>'
+                '<p style="color:#64748b;font-size:.78rem;letter-spacing:0;text-transform:none;margin-top:-6px;">'
+                'EWMA model of Strava relative effort — fitness (42-day), fatigue (7-day), form = fitness − fatigue.</p>', unsafe_allow_html=True)
+    tl = runs_f.sort_values("Date_Parsed")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=tl["Date_Parsed"], y=tl["fitness_ctl"], mode="lines",
+                  line=dict(color=CYAN, width=2), name="Fitness", fill="tozeroy", fillcolor="rgba(0,240,255,.06)"))
+    fig.add_trace(go.Scatter(x=tl["Date_Parsed"], y=tl["fatigue_atl"], mode="lines",
+                  line=dict(color=RED, width=1.8), name="Fatigue"))
+    fig.add_trace(go.Scatter(x=tl["Date_Parsed"], y=tl["form"], mode="lines",
+                  line=dict(color=LIME, width=1.5, dash="dot"), name="Form"))
+    fig = grid(fig); fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.12, font=dict(color=MUTE)))
+    st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------- RECORDS ----------------------
+with t_rec:
+    st.markdown("<h3>Personal Bests</h3>", unsafe_allow_html=True)
+    cards = ""
+    for key, lo, hi in PB_BANDS:
+        r = best_effort(runs_all, lo, hi)
+        if r is None: continue
+        cards += f"""<div class="pb-card"><div class="pb-dist">{key}</div>
+          <div class="pb-time">{r['moving_time_hms']}</div>
+          <div class="pb-meta">{r['pace_str']} /km<br>{r['Date_Parsed'].strftime('%d %b %Y')}<br>{r['distance_km']:.2f} km recorded</div></div>"""
+    st.markdown(f'<div class="pb-grid">{cards}</div>', unsafe_allow_html=True)
+    st.markdown('<p style="color:#64748b;font-size:.75rem;">Fastest recorded activity in each distance band (whole-run time, not in-race split).</p>', unsafe_allow_html=True)
+
+    st.markdown('<div class="chart-container-box"><h3>Official Race Registry</h3>', unsafe_allow_html=True)
+    races = f[f["Race_Tag"].notna()].sort_values("Date_Parsed", ascending=False)
+    if races.empty:
+        st.markdown('<p style="color:#64748b;">No registered races in this filter.</p>', unsafe_allow_html=True)
+    for _, r in races.iterrows():
+        full = r["Category_Custom"] == "Full Marathon"
+        accent = RED if full else LIME
+        note = f"<span style='color:{accent};font-family:monospace;font-size:.7rem;font-weight:800;'>{r['Race_Note']}</span>" if r["Race_Note"] else ""
+        st.markdown(f"""<div class="race-row" style="background:{'#1a1215' if full else '#161d2a'};border-left:4px solid {accent};">
+          <div><div style="color:#fff;font-weight:800;font-size:1.12rem;">{r['Race_Tag']}</div>
+          <div style="color:#64748b;font-size:.74rem;font-family:monospace;">{r['Date_Parsed'].strftime('%B %d, %Y')} &nbsp;·&nbsp; BIB {r['Race_Bib']}</div>{note}</div>
+          <div class="flashcard-metrics-group">
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{r['distance_km']:.2f}</div><div class="flashcard-metric-lbl">km</div></div>
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{r['moving_time_hms']}</div><div class="flashcard-metric-lbl">time</div></div>
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{r['pace_str']}</div><div class="flashcard-metric-lbl">/km</div></div>
+          </div></div>""", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------- PATTERNS ---------------------
+with t_pat:
+    # consistency KPIs
+    rdates = pd.to_datetime(runs_all["date"]).dt.date.sort_values().unique()
+    longest = cur = 1 if len(rdates) else 0
+    for i in range(1, len(rdates)):
+        cur = cur + 1 if (rdates[i] - rdates[i-1]).days == 1 else 1
+        longest = max(longest, cur)
+    last30 = sum((pd.Timestamp.now().date() - d).days <= 30 for d in rdates)
+    st.markdown(f"""<div class="kpi-container">
+      <div class="kpi-card accent"><div class="kpi-value">{len(rdates)}</div><div class="kpi-label">// ACTIVE DAYS</div></div>
+      <div class="kpi-card"><div class="kpi-value">{longest}</div><div class="kpi-label">// LONGEST DAY STREAK</div></div>
+      <div class="kpi-card"><div class="kpi-value">{last30}</div><div class="kpi-label">// RUNS LAST 30 DAYS</div></div>
+    </div>""", unsafe_allow_html=True)
+
+    colC, colD = st.columns(2)
+    with colC:
+        st.markdown('<div class="chart-container-box"><h3>By Day Of Week</h3>', unsafe_allow_html=True)
+        order = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+        wd = runs_f.groupby("weekday")["distance_km"].sum().reindex(order).fillna(0).reset_index()
+        fig = px.bar(wd, x="weekday", y="distance_km", text_auto=".0f")
+        fig.update_traces(marker_color=LIME)
+        st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+    with colD:
+        st.markdown('<div class="chart-container-box"><h3>By Hour Of Day</h3>', unsafe_allow_html=True)
+        hr = runs_f.groupby("hour").size().reset_index(name="runs")
+        fig = px.bar(hr, x="hour", y="runs")
+        fig.update_traces(marker_color=CYAN)
+        st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('<div class="chart-container-box"><h3>Monthly Volume Heatmap</h3>', unsafe_allow_html=True)
+    hm = runs_f.copy()
+    hm["mn"] = hm["Date_Parsed"].dt.month
+    piv = hm.pivot_table(index="year", columns="mn", values="distance_km", aggfunc="sum").fillna(0)
+    piv = piv.reindex(columns=range(1,13), fill_value=0)
+    piv.columns = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    fig = px.imshow(piv, text_auto=".0f", aspect="auto",
+                    color_continuous_scale=[[0,"#121721"],[0.5,"#1e6b6b"],[1,LIME]])
+    fig.update_layout(**{k:v for k,v in CHART.items() if k!="showlegend"})
+    fig.update_coloraxes(showscale=False)
+    st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------- FEED -------------------------
+with t_feed:
+    st.markdown("### Activity Feed Log")
+    for _, r in f.sort_values("Date_Parsed", ascending=False).head(60).iterrows():
+        full = r["Category_Custom"] == "Full Marathon"
+        accent = RED if full else CYAN
+        cad = f"{r['cadence_spm']:.0f}" if pd.notna(r["cadence_spm"]) else "--"
+        eff = f"{r['relative_effort']:.0f}" if pd.notna(r["relative_effort"]) else "--"
+        st.markdown(f"""<div class="flashcard-row-base" style="background:{'#1a1215' if full else '#121721'};border-left:4px solid {accent};">
+          <div style="min-width:230px;"><div style="color:#fff;font-weight:800;font-size:1.1rem;">{r['name']}</div>
+          <div style="color:{accent};font-size:.7rem;letter-spacing:1px;">{r['Category_Custom'].upper()} &nbsp;·&nbsp; {r['Date_Parsed'].strftime('%d %b %Y')}</div></div>
+          <div class="flashcard-metrics-group">
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{r['distance_km']:.2f}</div><div class="flashcard-metric-lbl">km</div></div>
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{r['moving_time_hms']}</div><div class="flashcard-metric-lbl">time</div></div>
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{r['pace_str']}</div><div class="flashcard-metric-lbl">/km</div></div>
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{cad}</div><div class="flashcard-metric-lbl">spm</div></div>
+            <div class="flashcard-metric"><div class="flashcard-metric-val">{eff}</div><div class="flashcard-metric-lbl">effort</div></div>
+          </div></div>""", unsafe_allow_html=True)
