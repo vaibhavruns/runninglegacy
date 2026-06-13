@@ -59,13 +59,12 @@ RACE_REGISTRY = {
     "2023-02-12": {"name": "Thane Half Marathon", "bib": "21559", "note": ""},
     "2023-11-19": {"name": "Indian Navy 10K", "bib": "12114", "note": ""},
     "2024-01-21": {"name": "Tata Mumbai Marathon 21K", "bib": "26504", "note": ""},
-    "2024-04-28": {"name": "TCS World 10K Bengaluru", "bib": "3970", "note": "PR EFFORT // 59 MINS"},
-    "2024-09-01": {"name": "Satara Half Hill Marathon", "bib": "25051", "note": ""},
+    "2024-04-28": {"name": "TCS World 10K Bengaluru", "bib": "3970", "note": ""},
     "2024-10-20": {"name": "Vedanta Delhi Half Marathon", "bib": "3258", "note": ""},
     "2024-12-08": {"name": "Indian Navy 21K", "bib": "23781", "note": ""},
     "2024-12-15": {"name": "Tata Steel World 25k Kolkata", "bib": "4653", "note": ""},
-    "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": "PR EFFORT"},
-    "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": "PR EFFORT"},
+    "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": ""},
+    "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": ""},
     "2025-12-21": {"name": "Tata Steel World 25k Kolkata", "bib": "4895", "note": ""},
     "2026-01-18": {"name": "Tata Mumbai Full Marathon", "bib": "11435", "note": ""},
     "2026-04-26": {"name": "TCS World 10K Bengaluru", "bib": "32357", "note": "PROCAM SLAM COMPLETED"},
@@ -280,13 +279,27 @@ with t_rec:
     st.markdown('<p style="color:#64748b;font-size:.75rem;">Fastest recorded activity in each distance band (whole-run time, not in-race split).</p>', unsafe_allow_html=True)
 
     st.markdown('<div class="chart-container-box"><h3>Official Race Registry</h3>', unsafe_allow_html=True)
-    races = f[f["Race_Tag"].notna()].sort_values("Date_Parsed", ascending=False)
+    # dates that are all-time PRs for a standard distance band -> auto PR badge
+    pr_dates = set()
+    for _key, lo, hi in PB_BANDS:
+        pr = best_effort(runs_all, lo, hi)
+        if pr is not None: pr_dates.add(pr["Date_Parsed"].date())
+    # one card per race date (keep the longest activity if a day has duplicates)
+    races = f[f["Race_Tag"].notna()].copy()
+    races["_d"] = races["Date_Parsed"].dt.date
+    races = (races.sort_values("distance_km", ascending=False)
+                  .drop_duplicates("_d").sort_values("Date_Parsed", ascending=False))
     if races.empty:
         st.markdown('<p style="color:#64748b;">No registered races in this filter.</p>', unsafe_allow_html=True)
     for _, r in races.iterrows():
         full = r["Category_Custom"] == "Full Marathon"
         accent = RED if full else LIME
-        note = f"<span style='color:{accent};font-family:monospace;font-size:.7rem;font-weight:800;'>{r['Race_Note']}</span>" if r["Race_Note"] else ""
+        chips = ""
+        if r["Date_Parsed"].date() in pr_dates:
+            chips += "<span style='background:#ccff00;color:#0b0e14;font-family:monospace;font-size:.62rem;font-weight:900;padding:2px 7px;border-radius:3px;letter-spacing:1px;margin-right:6px;'>PR</span>"
+        if r["Race_Note"]:
+            chips += f"<span style='color:{accent};font-family:monospace;font-size:.7rem;font-weight:800;'>{r['Race_Note']}</span>"
+        note = f"<div style='margin-top:4px;'>{chips}</div>" if chips else ""
         st.markdown(f"""<div class="race-row" style="background:{'#1a1215' if full else '#161d2a'};border-left:4px solid {accent};">
           <div><div style="color:#fff;font-weight:800;font-size:1.12rem;">{r['Race_Tag']}</div>
           <div style="color:#64748b;font-size:.74rem;font-family:monospace;">{r['Date_Parsed'].strftime('%B %d, %Y')} &nbsp;·&nbsp; BIB {r['Race_Bib']}</div>{note}</div>
