@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom typography and styled container boxes (Industrial sports aesthetic)
+# Custom typography, prominent navigation tabs, and styled containers
 st.markdown("""
 <style>
 .stApp {
@@ -25,6 +25,28 @@ h1, h2, h3, h4, h5, h6, strong {
     text-transform: uppercase !important;
     letter-spacing: 1.5px !important;
 }
+
+/* HIGH-PROMINENCE SPORTS TABS NAVIGATION */
+div[data-testid="stTabs"] button {
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    color: #64748b !important;
+    padding: 14px 28px !important;
+    border-bottom: 2px solid #1e293b !important;
+    transition: all 0.3s ease !important;
+}
+div[data-testid="stTabs"] button[aria-selected="true"] {
+    color: #ccff00 !important;
+    border-bottom: 3px solid #ccff00 !important;
+    background-color: #121721 !important;
+}
+div[data-testid="stTabs"] button:hover {
+    color: #ffffff !important;
+    border-bottom-color: #00f0ff !important;
+}
+
 /* Stadium Style Ticker */
 .ticker-wrap {
     background: #000000;
@@ -303,7 +325,7 @@ else:
         full_ticker_text = spacer.join(ticker_items)
         st.markdown(f"""<div class="ticker-wrap"><marquee behavior="scroll" direction="left" scrollamount="6" style="color: #ccff00; font-weight: 800; font-family: monospace; font-size: 1.1rem;">ALL-TIME RECORD BENCHMARKS // {full_ticker_text}</marquee></div>""", unsafe_allow_html=True)
 
-    # 5. EXPANDED NAVIGATION ARCHITECTURE
+    # 5. HIGH-VISIBILITY NAVIGATION ARCHITECTURE
     tab_dashboard, tab_facts, tab_feed = st.tabs(["Overview and Analytics", "System Insights and Milestones", "Activity Feed Log"])
 
     # --- TAB 1: OVERVIEW & ANALYTICS ---
@@ -387,11 +409,54 @@ else:
 
     # --- TAB 2: SYSTEM INSIGHTS & MILESTONES ---
     with tab_facts:
-        st.markdown("### HISTORICAL PERFORMANCE INSIGHTS")
-        
         if f_df.empty:
             st.warning("Insufficient data parameters matching current selection.")
         else:
+            # 1. ANCHOR SHOWCASE: OFFICIAL COMPETITIVE HISTORY REGISTRY AT THE TOP
+            st.markdown("""<div class="chart-container-box"><h3>Official Competitive History Registry</h3>""", unsafe_allow_html=True)
+            
+            registered_races = f_df[f_df['Race_Tag'].notna()].sort_values(by='Date', ascending=False)
+            
+            if not registered_races.empty:
+                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-bottom:20px;'>The following verified competitive profiles have been linked and cross-referenced via your secure date registry:</p>", unsafe_allow_html=True)
+                
+                for _, row in registered_races.iterrows():
+                    p_val = row['Pace_Decimal']
+                    p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
+                    r_date = row['Date'].strftime('%B %d, %Y')
+                    bib_string = f" // BIB: {row['Race_Bib']}" if row['Race_Bib'] else ""
+                    
+                    is_full_marathon = row['Category'] == "Full Marathon"
+                    card_left_border = "#ff4757" if is_full_marathon else "#ccff00"
+                    card_bg_style = "background:#1a1215;" if is_full_marathon else "background:#161d2a;"
+                    
+                    class_tag = "<div style='color:#ff4757; font-size:0.7rem; font-weight:800; font-family:monospace; margin-bottom:4px;'>// PRESTIGE CLASS: 42.195KM FULL MARATHON</div>" if is_full_marathon else ""
+                    
+                    note_markup = ""
+                    if pd.notna(row['Race_Note']) and row['Race_Note'] != "":
+                        note_color = "#ff4757" if is_full_marathon else "#ccff00"
+                        note_markup = f"<div style='margin-top: 10px; background: rgba(255, 71, 87, 0.08); border: 1px solid {note_color}; padding: 6px 14px; border-radius: 4px; color: {note_color}; font-size: 0.75rem; font-weight: 800; display: inline-block; letter-spacing: 1px; font-family: monospace;'>// ACCOMPLISHMENT: {row['Race_Note'].upper()}</div>"
+                    
+                    st.markdown(f"""<div style='{card_bg_style} padding:18px 24px; border-radius:6px; margin-bottom:14px; border-left:4px solid {card_left_border}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;'>
+<div>
+{class_tag}
+<div style='color:#ffffff; font-weight:800; font-size:1.15rem; text-transform:uppercase;'>{row['Race_Tag']}{bib_string}</div>
+<div style='color:#64748b; font-size:0.75rem; font-family:monospace; margin-top:3px;'>CONQUERED: {r_date}</div>
+{note_markup}
+</div>
+<div style='text-align:right; font-family:monospace;'>
+<div style='color:#ffffff; font-weight:800; font-size:1.2rem;'>{row['Distance_KM']:.2f} KM</div>
+<div style='color:#00f0ff; font-size:0.75rem; text-transform:uppercase; font-weight:700;'>PACE: {p_str}</div>
+</div>
+</div>""", unsafe_allow_html=True)
+            else:
+                st.markdown("<p style='color:#64748b;'>No official verified race dates found within the currently active filter window.</p>", unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # 2. SECONDARY LAYER: EXTRACTED INSIGHT CHARTS & FACTS
+            st.markdown("### SYSTEM RUNNING METRIC LOGS")
+            
             longest_run_row = f_df.loc[f_df['Distance_KM'].idxmax()]
             longest_dist = longest_run_row['Distance_KM']
             longest_date = longest_run_row['Date'].strftime('%B %d, %Y')
@@ -437,50 +502,6 @@ else:
     <div class="fact-sub">Accounted for {dominant_day_count}</div>
 </div>
 </div>""", unsafe_allow_html=True)
-
-            # Verified Event Registry Panel
-            st.markdown("""<div class="chart-container-box"><h3>Official Competitive History Registry</h3>""", unsafe_allow_html=True)
-            
-            registered_races = f_df[f_df['Race_Tag'].notna()].sort_values(by='Date', ascending=False)
-            
-            if not registered_races.empty:
-                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-bottom:20px;'>The following verified competitive profiles have been linked and cross-referenced via your secure date registry:</p>", unsafe_allow_html=True)
-                
-                for _, row in registered_races.iterrows():
-                    p_val = row['Pace_Decimal']
-                    p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
-                    r_date = row['Date'].strftime('%B %d, %Y')
-                    bib_string = f" // BIB: {row['Race_Bib']}" if row['Race_Bib'] else ""
-                    
-                    # Determine dynamic marathon highlighting overrides
-                    is_full_marathon = row['Category'] == "Full Marathon"
-                    card_left_border = "#ff4757" if is_full_marathon else "#ccff00"
-                    card_bg_style = "background:#1a1215;" if is_full_marathon else "background:#161d2a;"
-                    
-                    class_tag = "<div style='color:#ff4757; font-size:0.7rem; font-weight:800; font-family:monospace; margin-bottom:4px;'>// PRESTIGE CLASS: 42.195KM FULL MARATHON</div>" if is_full_marathon else ""
-                    
-                    # Achievement Note Engine (Flattened to line up cleanly)
-                    note_markup = ""
-                    if pd.notna(row['Race_Note']) and row['Race_Note'] != "":
-                        note_color = "#ff4757" if is_full_marathon else "#ccff00"
-                        note_markup = f"<div style='margin-top: 10px; background: rgba(255, 71, 87, 0.08); border: 1px solid {note_color}; padding: 6px 14px; border-radius: 4px; color: {note_color}; font-size: 0.75rem; font-weight: 800; display: inline-block; letter-spacing: 1px; font-family: monospace;'>// ACCOMPLISHMENT: {row['Race_Note'].upper()}</div>"
-                    
-                    st.markdown(f"""<div style='{card_bg_style} padding:18px 24px; border-radius:6px; margin-bottom:14px; border-left:4px solid {card_left_border}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;'>
-<div>
-{class_tag}
-<div style='color:#ffffff; font-weight:800; font-size:1.15rem; text-transform:uppercase;'>{row['Race_Tag']}{bib_string}</div>
-<div style='color:#64748b; font-size:0.75rem; font-family:monospace; margin-top:3px;'>CONQUERED: {r_date}</div>
-{note_markup}
-</div>
-<div style='text-align:right; font-family:monospace;'>
-<div style='color:#ffffff; font-weight:800; font-size:1.2rem;'>{row['Distance_KM']:.2f} KM</div>
-<div style='color:#00f0ff; font-size:0.75rem; text-transform:uppercase; font-weight:700;'>PACE: {p_str}</div>
-</div>
-</div>""", unsafe_allow_html=True)
-            else:
-                st.markdown("<p style='color:#64748b;'>No official verified race dates found within the currently active filter window.</p>", unsafe_allow_html=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True)
 
     # --- TAB 3: ACTIVITY FEED LOG ---
     with tab_feed:
