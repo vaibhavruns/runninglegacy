@@ -103,6 +103,22 @@ def load_data():
     df["Race_Bib"]  = ds.map(lambda x: RACE_REGISTRY.get(x, {}).get("bib"))
     df["Race_Note"] = ds.map(lambda x: RACE_REGISTRY.get(x, {}).get("note"))
     df["weekday"] = df.get("weekday", df["Date_Parsed"].dt.strftime("%a"))
+
+    # ---- merge Garmin FIT metrics (HR, training effect, running dynamics) ----
+    fit_path = next((p for p in ["fit_metrics.csv", "data/fit_metrics.csv"] if os.path.exists(p)), None)
+    fit_cols = ["avg_hr","max_hr","cadence_spm_fit","aerobic_te","anaerobic_te",
+                "gct_ms","vert_osc_mm","vert_ratio","step_len_m"]
+    if fit_path:
+        fit = pd.read_csv(fit_path)
+        keep = ["join_local"] + [c for c in fit_cols if c in fit.columns]
+        fit = fit[keep].drop_duplicates("join_local")
+        df["join_local"] = df["datetime"].astype(str).str.replace("T", " ").str[:16]
+        df = df.merge(fit, on="join_local", how="left")
+        for c in fit_cols:
+            if c in df.columns: df[c] = pd.to_numeric(df[c], errors="coerce")
+    else:
+        for c in fit_cols: df[c] = pd.NA
+    df["has_hr"] = df["avg_hr"].notna() if "avg_hr" in df.columns else False
     return df
 
 def best_effort(runs, lo, hi):
@@ -125,6 +141,7 @@ def grid(fig):
 
 
 df = load_data()
+HRMAX = int(df["max_hr"].max()) if ("max_hr" in df.columns and df["max_hr"].notna().any()) else 190
 
 # ---- HEADER ------------------------------------------------
 st.markdown("<h1 style='color:#fff;font-size:2.8rem;font-weight:900;margin-bottom:0;'>RUNNING JOURNEY</h1>", unsafe_allow_html=True)
@@ -175,8 +192,8 @@ if tick:
 # ============================================================
 # NAVIGATION
 # ============================================================
-t_over, t_trend, t_rec, t_pat, t_feed = st.tabs(
-    ["Overview", "Trends", "Records", "Patterns", "Activity Feed"])
+t_over, t_trend, t_heart, t_dyn, t_rec, t_pat, t_feed = st.tabs(
+    ["Overview", "Trends", "Heart", "Dynamics", "Records", "Patterns", "Activity Feed"])
 
 # ----------------------------- OVERVIEW ---------------------
 with t_over:
@@ -264,6 +281,87 @@ with t_trend:
                   line=dict(color=LIME, width=1.5, dash="dot"), name="Form"))
     fig = grid(fig); fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.12, font=dict(color=MUTE)))
     st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------- HEART ------------------------
+with t_heart:
+    h = runs_f[runs_f["avg_hr"].notna()].sort_values("Date_Parsed") if "avg_hr" in runs_f.columns else runs_f.iloc[0:0]
+    if h.empty:
+        st.markdown('<p style="color:#64748b;">No heart-rate data in this filter. Commit <code>fit_metrics.csv</code> to the repo to unlock HR analytics.</p>', unsafe_allow_html=True)
+    else:
+        avg_hr = h["avg_hr"].mean()
+        te = h["aerobic_te"].mean() if h["aerobic_te"].notna().any() else float("nan")
+        # metres per heartbeat: distance / total beats (higher = more aerobically efficient)
+        h = h.copy()
+        h["m_per_beat"] = (h["distance_km"]*1000) / (h["avg_hr"] * (h["moving_time_s"]/60.0))
+        eff_now = h.sort_values("Date_Parsed")["m_per_beat"].tail(10).mean()
+        st.markdown(f"""<div class="kpi-container">
+          <div class="kpi-card accent"><div class="kpi-value">{avg_hr:.0f}<span style='font-size:1rem;'> BPM</span></div><div class="kpi-label">// AVG HEART RATE</div><div class="kpi-sub">{int(h['avg_hr'].count())} runs w/ HR</div></div>
+          <div class="kpi-card"><div class="kpi-value">{HRMAX}<span style='font-size:1rem;'> BPM</span></div><div class="kpi-label">// MAX HR RECORDED</div></div>
+          <div class="kpi-card"><div class="kpi-value">{te:.1f}</div><div class="kpi-label">// AVG AEROBIC TE</div></div>
+          <div class="kpi-card"><div class="kpi-value">{eff_now:.2f}<span style='font-size:1rem;'> M/BEAT</span></div><div class="kpi-label">// RECENT EFFICIENCY</div></div>
+        </div>""", unsafe_allow_html=True)
+
+        cH1, cH2 = st.columns(2)
+        with cH1:
+            st.markdown('<div class="chart-container-box"><h3>Heart Rate Trend</h3>', unsafe_allow_html=True)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=h["Date_Parsed"], y=h["max_hr"], mode="markers", marker=dict(color="#3a2230", size=4), name="max"))
+            fig.add_trace(go.Scatter(x=h["Date_Parsed"], y=h["avg_hr"], mode="markers", marker=dict(color=MUTE, size=5), name="avg"))
+            fig.add_trace(go.Scatter(x=h["Date_Parsed"], y=h["avg_hr"].rolling(10, min_periods=3).mean(), mode="lines", line=dict(color=RED, width=2.5), name="avg trend"))
+            st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+        with cH2:
+            st.markdown('<div class="chart-container-box"><h3>Aerobic Efficiency</h3>'
+                        '<p style="color:#64748b;font-size:.78rem;letter-spacing:0;text-transform:none;margin-top:-6px;">Metres per heartbeat on runs \u2265 5 km. Rising = same pace at lower effort.</p>', unsafe_allow_html=True)
+            e = h[h["distance_km"] >= 5]
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=e["Date_Parsed"], y=e["m_per_beat"], mode="markers", marker=dict(color=MUTE, size=5)))
+            fig.add_trace(go.Scatter(x=e["Date_Parsed"], y=e["m_per_beat"].rolling(8, min_periods=3).mean(), mode="lines", line=dict(color=LIME, width=2.5)))
+            st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+        cH3, cH4 = st.columns(2)
+        with cH3:
+            st.markdown('<div class="chart-container-box"><h3>Intensity Mix</h3>'
+                        f'<p style="color:#64748b;font-size:.78rem;letter-spacing:0;text-transform:none;margin-top:-6px;">Runs grouped by average HR as % of max ({HRMAX} bpm).</p>', unsafe_allow_html=True)
+            pct = h["avg_hr"]/HRMAX*100
+            bins = [0,60,70,80,90,200]; labels = ["Z1 Recovery","Z2 Easy","Z3 Aerobic","Z4 Threshold","Z5 Max"]
+            zc = pd.cut(pct, bins=bins, labels=labels).value_counts().reindex(labels).fillna(0).reset_index()
+            zc.columns = ["zone","runs"]
+            fig = px.bar(zc, x="zone", y="runs", text_auto=".0f",
+                         color="zone", color_discrete_sequence=["#334155","#00f0ff","#34e5c4","#ffb020","#ff4757"])
+            st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+        with cH4:
+            st.markdown('<div class="chart-container-box"><h3>Pace vs Heart Rate</h3>', unsafe_allow_html=True)
+            sc = h[h["pace_min_per_km"].notna()]
+            fig = px.scatter(sc, x="avg_hr", y="pace_min_per_km", color="year",
+                             color_discrete_map=YEAR_COLORS, hover_data=["name"])
+            fig = grid(fig); fig.update_yaxes(autorange="reversed", title_text="pace min/km")
+            fig.update_xaxes(title_text="avg HR")
+            fig.update_layout(showlegend=True, legend=dict(font=dict(color=MUTE)))
+            st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+
+# ----------------------------- DYNAMICS ---------------------
+with t_dyn:
+    d = runs_f[runs_f["cadence_spm_fit"].notna()].sort_values("Date_Parsed") if "cadence_spm_fit" in runs_f.columns else runs_f.iloc[0:0]
+    if d.empty:
+        st.markdown('<p style="color:#64748b;">No running-dynamics data in this filter. These come from the FIT files (HRM-Pro / Run pod).</p>', unsafe_allow_html=True)
+    else:
+        def dyn_chart(col, title, sub, color, target=None):
+            st.markdown(f'<div class="chart-container-box"><h3>{title}</h3>'
+                        f'<p style="color:#64748b;font-size:.78rem;letter-spacing:0;text-transform:none;margin-top:-6px;">{sub}</p>', unsafe_allow_html=True)
+            s = d[d[col].notna()]
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=s["Date_Parsed"], y=s[col], mode="markers", marker=dict(color=MUTE, size=4)))
+            fig.add_trace(go.Scatter(x=s["Date_Parsed"], y=s[col].rolling(10, min_periods=3).mean(), mode="lines", line=dict(color=color, width=2.5)))
+            if target is not None:
+                fig.add_hline(y=target, line_dash="dash", line_color=RED)
+            st.plotly_chart(grid(fig), use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+        cD1, cD2 = st.columns(2)
+        with cD1: dyn_chart("cadence_spm_fit", "Cadence (FIT)", f"Steps per minute \u2014 target {CADENCE_TARGET} spm.", CYAN, CADENCE_TARGET)
+        with cD2: dyn_chart("gct_ms", "Ground Contact Time", "Milliseconds on the ground per step. Lower is generally better.", LIME)
+        cD3, cD4 = st.columns(2)
+        with cD3: dyn_chart("vert_osc_mm", "Vertical Oscillation", "Vertical bounce in mm. Lower = less wasted motion.", LIME)
+        with cD4: dyn_chart("step_len_m", "Stride Length", "Metres per step.", CYAN)
+        dyn_chart("vert_ratio", "Vertical Ratio", "Bounce as a percentage of stride length \u2014 a key efficiency measure. Lower is better.", LIME)
 
 # ----------------------------- RECORDS ----------------------
 with t_rec:
