@@ -162,7 +162,7 @@ div[data-testid="stTabs"] button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# 2. CORE DATA READING ENGINE WITH OFFICIAL RACE REGISTRY
+# 2. CORE DATA READING ENGINE
 @st.cache_data
 def load_garmin_data():
     if not os.path.exists("Activities.csv"):
@@ -197,7 +197,6 @@ def load_garmin_data():
         df['Race_Tag'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['name'] if x in RACE_REGISTRY else None)
         df['Race_Bib'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['bib'] if x in RACE_REGISTRY else None)
         df['Race_Note'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['note'] if x in RACE_REGISTRY else None)
-        # -----------------------------------------------------------------
         
         def segment_run(km):
             if km >= 42.0: return "Full Marathon"
@@ -225,52 +224,36 @@ else:
     # 3. GLOBAL CONTROL ROOM FILTERS
     st.markdown("### CONTROL CENTER")
     filter_col1, filter_col2 = st.columns(2)
-    
     with filter_col1:
         year_list = ["ALL TIME"] + [str(y) for y in sorted(df['year'].unique(), reverse=True)]
         selected_year = st.selectbox("YEAR:", options=year_list)
-        
     with filter_col2:
         cat_list = ["ALL CATEGORIES"] + ["Full Marathon", "Between Half and Full", "Half Marathon", "Between 10K and 21K", "10K Runs", "Less than 10K"]
         selected_cat = st.selectbox("DISTANCE:", options=cat_list)
         
     f_df = df.copy()
-    if selected_year != "ALL TIME":
-        f_df = f_df[f_df['year'] == int(selected_year)]
-    if selected_cat != "ALL CATEGORIES":
-        f_df = f_df[f_df['Category_Custom'] == selected_cat]
+    if selected_year != "ALL TIME": f_df = f_df[f_df['year'] == int(selected_year)]
+    if selected_cat != "ALL CATEGORIES": f_df = f_df[f_df['Category_Custom'] == selected_cat]
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     # 4. STADIUM LED TICKER
     ticker_items = []
-    
     row_10k = df[df['Date_Parsed'].dt.strftime('%Y-%m-%d') == '2024-04-28']
     row_21k = df[df['Date_Parsed'].dt.strftime('%Y-%m-%d') == '2025-10-12']
     row_42k = df[df['Date_Parsed'].dt.strftime('%Y-%m-%d') == '2025-09-21']
     
-    if not row_10k.empty:
-        ticker_items.append(f"PR 10K: TCS BENGALURU ({row_10k.iloc[0]['distance_km']:.2f}KM @ 5:54/KM // TIME: 59:00)")
-    else:
-        ticker_items.append("PR 10K: TCS BENGALURU (10.00KM @ 5:54/KM // TIME: 59:00)")
-        
-    if not row_21k.empty:
-        r21 = row_21k.iloc[0]
-        ticker_items.append(f"PR HALF MARATHON: VEDANTA DELHI ({r21['distance_km']:.2f}KM @ {r21['pace_str']}/KM // TIME: {r21['moving_time_hms']})")
-        
-    if not row_42k.empty:
-        r42 = row_42k.iloc[0]
-        ticker_items.append(f"PR FULL MARATHON: BERLIN ({r42['distance_km']:.2f}KM @ {r42['pace_str']}/KM // TIME: {r42['moving_time_hms']})")
+    if not row_10k.empty: ticker_items.append(f"PR 10K: TCS BENGALURU ({row_10k.iloc[0]['distance_km']:.2f}KM @ 5:54/KM // TIME: 59:00)")
+    else: ticker_items.append("PR 10K: TCS BENGALURU (10.00KM @ 5:54/KM // TIME: 59:00)")
+    if not row_21k.empty: r21 = row_21k.iloc[0]; ticker_items.append(f"PR HALF MARATHON: VEDANTA DELHI ({r21['distance_km']:.2f}KM @ {r21['pace_str']}/KM // TIME: {r21['moving_time_hms']})")
+    if not row_42k.empty: r42 = row_42k.iloc[0]; ticker_items.append(f"PR FULL MARATHON: BERLIN ({r42['distance_km']:.2f}KM @ {r42['pace_str']}/KM // TIME: {r42['moving_time_hms']})")
         
     if ticker_items:
         full_ticker_text = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_items)
         st.markdown(f"""<div class="ticker-wrap"><marquee behavior="scroll" direction="left" scrollamount="6" style="color: #ccff00; font-weight: 800; font-family: monospace; font-size: 1.1rem;">ALL-TIME RECORD BENCHMARKS // {full_ticker_text}</marquee></div>""", unsafe_allow_html=True)
 
-    # 5. HIGH-VISIBILITY NAVIGATION ARCHITECTURE
-    tab_dashboard, tab_facts, tab_feed = st.tabs(["Overview and Analytics", "System Insights and Milestones", "Activity Feed Log"])
-
-    premium_chart_layout = dict(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=10, r=10, t=15, b=10), font=dict(family="Inter, sans-serif", size=12, color="#94a3b8"), showlegend=False, bargap=0.4)
-    athletic_color_map = {"2023": "#334155", "2024": "#00f0ff", "2025": "#ff4757", "2026": "#ccff00"}
+    # 5. NAVIGATION
+    tab_dashboard, tab_registry, tab_feed = st.tabs(["Overview and Analytics", "Race Registry", "Activity Feed Log"])
 
     # --- TAB 1 ---
     with tab_dashboard:
@@ -279,22 +262,20 @@ else:
         with col1:
             st.markdown("""<div class="chart-container-box"><h3>Volumes</h3>""", unsafe_allow_html=True)
             yoy = f_df.groupby('year')['distance_km'].sum().reset_index(); yoy['year'] = yoy['year'].astype(str)
-            fig = px.bar(yoy, x='year', y='distance_km', text_auto='.0f', color='year', color_discrete_map=athletic_color_map)
-            fig.update_layout(**premium_chart_layout); fig.update_yaxes(showgrid=True, gridcolor="rgba(30, 41, 59, 0.4)", zeroline=False, title_text=""); st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+            fig = px.bar(yoy, x='year', y='distance_km', text_auto='.0f', color='year', color_discrete_map={"2023": "#334155", "2024": "#00f0ff", "2025": "#ff4757", "2026": "#ccff00"})
+            fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Inter, sans-serif", size=12, color="#94a3b8"), showlegend=False, bargap=0.4); fig.update_yaxes(showgrid=True, gridcolor="rgba(30, 41, 59, 0.4)", zeroline=False, title_text=""); st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
         with col2:
             st.markdown("""<div class="chart-container-box"><h3>Frequency</h3>""", unsafe_allow_html=True)
             freq = f_df['Category_Custom'].value_counts().reset_index()
             fig = px.bar(freq, x='count', y='Category_Custom', orientation='h', text_auto='.0f')
-            fig.update_layout(**premium_chart_layout); fig.update_traces(marker_color="#ccff00"); fig.update_yaxes(showgrid=False, title_text=""); st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
+            fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family="Inter, sans-serif", size=12, color="#94a3b8"), showlegend=False, bargap=0.4); fig.update_traces(marker_color="#ccff00"); fig.update_yaxes(showgrid=False, title_text=""); st.plotly_chart(fig, use_container_width=True); st.markdown("</div>", unsafe_allow_html=True)
 
     # --- TAB 2 ---
-    with tab_facts:
-        st.markdown("""<div class="chart-container-box"><h3>Race Registry</h3>""", unsafe_allow_html=True)
+    with tab_registry:
         races = f_df[f_df['Race_Tag'].notna()].sort_values(by='Date_Parsed', ascending=False)
         for _, row in races.iterrows():
             is_full = row['Category_Custom'] == "Full Marathon"
             st.markdown(f"""<div style='background:{"#1a1215" if is_full else "#161d2a"}; padding:18px 24px; border-radius:6px; margin-bottom:14px; border-left:4px solid {"#ff4757" if is_full else "#ccff00"}; display:flex; justify-content:space-between; align-items:center;'><div><div style='color:{"#ff4757" if is_full else "#ccff00"}; font-size:0.7rem; font-weight:800; font-family:monospace;'>{'// PRESTIGE CLASS: 42.195KM' if is_full else ''}</div><div style='color:#ffffff; font-weight:800; font-size:1.15rem;'>{row['Race_Tag']}</div><div style='color:#64748b; font-size:0.75rem; font-family:monospace;'>{row['Date_Parsed'].strftime('%B %d, %Y')}</div></div><div style='text-align:right;'><div style='color:#ffffff; font-weight:800; font-size:1.2rem;'>{row['distance_km']:.2f} KM</div></div></div>""", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # --- TAB 3 ---
     with tab_feed:
