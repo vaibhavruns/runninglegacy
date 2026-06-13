@@ -4,9 +4,13 @@ import plotly.express as px
 import os
 
 # 1. PREMIUM LIGHT MODE PAGE SETUP
-st.set_page_config(page_title="Running Journey", page_icon="🏃‍♂️", layout="wide")
+st.set_page_config(
+    page_title="Running Journey",
+    page_icon="🏃‍♂️",
+    layout="wide"
+)
 
-# Clean, high-contrast light mode typography overrides
+# Inject explicit clean-light typography and structural CSS
 st.markdown("""
     <style>
     .stApp {
@@ -33,7 +37,7 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #e9ecef;
         text-align: center;
-        box-shadow: 0 4px 12 rgba(0, 0, 0, 0.04);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     }
     .kpi-value {
         font-size: 2.2rem;
@@ -66,9 +70,10 @@ def load_garmin_data():
     try:
         df = pd.read_csv("activities.csv")
         
-        date_col = [c for c in df.columns if 'Date' in c or 'Time' in c or 'Start' in c][0]
-        dist_col = [c for c in df.columns if 'Distance' in c][0]
-        pace_col = [c for c in df.columns if 'Pace' in c or 'Speed' in c][0]
+        cols = list(df.columns)
+        date_col = [c for c in cols if 'Date' in c or 'Time' in c or 'Start' in c][0]
+        dist_col = [c for c in cols if 'Distance' in c][0]
+        pace_col = [c for c in cols if 'Pace' in c or 'Speed' in c][0]
         
         df['Date'] = pd.to_datetime(df[date_col])
         df['Year'] = df['Date'].dt.year
@@ -143,7 +148,8 @@ else:
         ticker_items.append(f"🏆 BEST FULL MARATHON: {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
         
     if ticker_items:
-        full_ticker_text = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_items)
+        spacer = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
+        full_ticker_text = spacer.join(ticker_items)
         st.markdown(f"""
             <div class="ticker-wrap">
                 <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #0076d6; font-weight: 700; font-family: monospace; font-size: 1.1rem;">
@@ -186,9 +192,70 @@ else:
         yoy_volume = df.groupby('Year')['Distance_KM'].sum().reset_index()
         yoy_volume['Year'] = yoy_volume['Year'].astype(str)
         
+        colors = ['#0076d6', '#10b981', '#ff6b6b']
         fig_yoy = px.bar(
-            yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
-            color='Year', color_discrete_sequence=['#0076d6', '#10b981', '#ff6b6b']
+            yoy_volume,
+            x='Year',
+            y='Distance_KM',
+            text_auto='.1f',
+            color='Year',
+            color_discrete_sequence=colors
         )
-        fig_yoy.update_layout(
-            template="
+        fig_yoy.update_layout(template="plotly_white")
+        fig_yoy.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+        fig_yoy.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+        fig_yoy.update_layout(yaxis_title="Total Distance (KM)")
+        fig_yoy.update_layout(showlegend=False)
+        st.plotly_chart(fig_yoy, use_container_width=True)
+
+    with col2:
+        st.markdown("### 🗂️ Run Count by Category")
+        cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "Between 10K and 21K ⚡", "10K Runs 🎯", "Less than 10K 🌱"]
+        cat_counts = df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
+        cat_counts.columns = ['Category', 'Runs']
+        
+        fig_cat = px.bar(
+            cat_counts,
+            x='Runs',
+            y='Category',
+            orientation='h',
+            color_discrete_sequence=['#14b8a6']
+        )
+        fig_cat.update_layout(template="plotly_white")
+        fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+        fig_cat.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+        fig_cat.update_layout(xaxis_title="Number of Activities")
+        fig_cat.update_layout(yaxis_title="")
+        st.plotly_chart(fig_cat, use_container_width=True)
+
+    st.markdown("<hr style='border-color: #e9ecef; margin-top: 30px; margin-bottom: 30px;'>", unsafe_allow_html=True)
+
+    # 6. VISUALIZATION ROW 2: MONTH-ONLY TIMELINE MATRIX
+    st.markdown("### 📅 Monthly Volume Breakdown")
+    
+    available_years = sorted(df['Year'].unique(), reverse=True)
+    selected_year = st.selectbox("Choose Year to View Monthly Splits:", options=available_years)
+    
+    m_df = df[df['Year'] == selected_year]
+    monthly_grouped = m_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
+    
+    all_months = pd.DataFrame({
+        'Month_Num': range(1, 13),
+        'Month_Name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    })
+    monthly_volume = pd.merge(all_months, monthly_grouped, on=['Month_Num', 'Month_Name'], how='left').fillna(0)
+    
+    fig_month = px.bar(
+        monthly_volume,
+        x='Month_Name',
+        y='Distance_KM',
+        text_auto='.1f',
+        color_discrete_sequence=['#4f46e5']
+    )
+    fig_month.update_layout(template="plotly_white")
+    fig_month.update_layout(paper_bgcolor="rgba(0,0,0,0)")
+    fig_month.update_layout(plot_bgcolor="rgba(0,0,0,0)")
+    fig_month.update_layout(yaxis_title="Distance (KM)")
+    fig_month.update_layout(xaxis_title="Months")
+    fig_month.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': all_months['Month_Name']})
+    st.plotly_chart(fig_month, use_container_width=True)
