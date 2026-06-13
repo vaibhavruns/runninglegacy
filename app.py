@@ -33,7 +33,7 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #e9ecef;
         text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 4px 12 rgba(0, 0, 0, 0.04);
     }
     .kpi-value {
         font-size: 2.2rem;
@@ -112,7 +112,7 @@ else:
     # 3. DYNAMIC TARGETED BENCHMARKS TICKER TAPE
     ticker_items = []
     
-    # Extract Best 10K (Standard window catching runs around ~10KM)
+    # Extract Best 10K
     df_10k = df[(df['Distance_KM'] >= 9.5) & (df['Distance_KM'] <= 11.5) & (df['Pace_Decimal'].notna())]
     if not df_10k.empty:
         best_10k = df_10k.loc[df_10k['Pace_Decimal'].idxmin()]
@@ -128,4 +128,67 @@ else:
         best_21k = df_21k.loc[df_21k['Pace_Decimal'].idxmin()]
         p_min = int(best_21k['Pace_Decimal'])
         p_sec = int((best_21k['Pace_Decimal'] % 1) * 60)
-        r
+        r_date = best_21k['Date'].strftime('%d %b %Y')
+        d_val = best_21k['Distance_KM']
+        ticker_items.append(f"🥈 BEST HALF MARATHON (21K): {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
+        
+    # Extract Best Full Marathon
+    df_42k = df[(df['Distance_KM'] >= 41.0) & (df['Pace_Decimal'].notna())]
+    if not df_42k.empty:
+        best_42k = df_42k.loc[df_42k['Pace_Decimal'].idxmin()]
+        p_min = int(best_42k['Pace_Decimal'])
+        p_sec = int((best_42k['Pace_Decimal'] % 1) * 60)
+        r_date = best_42k['Date'].strftime('%d %b %Y')
+        d_val = best_42k['Distance_KM']
+        ticker_items.append(f"🏆 BEST FULL MARATHON: {d_val:.2f}KM @ {p_min}:{p_sec:02d}/km ({r_date})")
+        
+    if ticker_items:
+        full_ticker_text = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ".join(ticker_items)
+        st.markdown(f"""
+            <div class="ticker-wrap">
+                <marquee behavior="scroll" direction="left" scrollamount="5" style="color: #0076d6; font-weight: 700; font-family: monospace; font-size: 1.1rem;">
+                    🥇 DISTANCE MILESTONE BENCHMARKS &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⚡ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {full_ticker_text}
+                </marquee>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # 4. CORE METRICS DISPLAY PANEL
+    total_runs = len(df)
+    total_km = df['Distance_KM'].sum()
+    avg_run_dist = df['Distance_KM'].mean()
+    
+    st.markdown(f"""
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <div class="kpi-value">{total_runs}</div>
+                <div class="kpi-label">Lifetime Runs</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">{total_km:,.1f} KM</div>
+                <div class="kpi-label">Total Volume Conquered</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">{avg_run_dist:.2f} KM</div>
+                <div class="kpi-label">Avg Distance / Run</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">{df['Year'].nunique()}</div>
+                <div class="kpi-label">Years Tracked</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # 5. VISUALIZATION ROW 1: YEAR-ON-YEAR & REFINED CATEGORIES
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📊 Year-on-Year Training Volume")
+        yoy_volume = df.groupby('Year')['Distance_KM'].sum().reset_index()
+        yoy_volume['Year'] = yoy_volume['Year'].astype(str)
+        
+        fig_yoy = px.bar(
+            yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
+            color='Year', color_discrete_sequence=['#0076d6', '#10b981', '#ff6b6b']
+        )
+        fig_yoy.update_layout(
+            template="
