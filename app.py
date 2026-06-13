@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# 1. 2026 PREMIUM ATHLETIC MINIMALIST PAGE SETUP
+# 1. PREMIUM ATHLETIC MINIMALIST PAGE SETUP
 st.set_page_config(
     page_title="RUNNING JOURNEY // METRIC ENGINE",
     layout="wide"
@@ -108,9 +108,8 @@ st.markdown("""
         margin-top: 6px;
         letter-spacing: 0.5px;
     }
-    /* Flashcard Row Systems */
-    .flashcard-row {
-        background: #121721;
+    /* Flashcard Base Styling classes */
+    .flashcard-row-base {
         border: 1px solid #1e293b;
         border-radius: 6px;
         padding: 16px 24px;
@@ -120,7 +119,6 @@ st.markdown("""
         align-items: center;
         justify-content: space-between;
         gap: 15px;
-        border-left: 4px solid #00f0ff;
     }
     .flashcard-left {
         display: flex;
@@ -178,7 +176,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. CORE DATA READING ENGINE
+# 2. CORE DATA READING ENGINE WITH VERIFIED RACE REGISTRY
 @st.cache_data
 def load_garmin_data():
     if not os.path.exists("activities.csv"):
@@ -194,9 +192,7 @@ def load_garmin_data():
         title_matches = [c for c in cols if 'Title' in c or 'Name' in c]
         time_matches = [c for c in cols if 'Duration' in c or 'Time' in c]
         hr_matches = [c for c in cols if 'Heart' in c or 'HR' in c or 'bpm' in c]
-        tag_matches = [c for c in cols if 'Tag' in c or 'Race' in c]
         
-        df['Race_Tag'] = df[tag_matches[0]] if tag_matches else None
         df['Activity_Title'] = df[title_matches[0]] if title_matches else "Training Run"
         df['Duration_Raw'] = df[time_matches[0]] if time_matches else "--:--"
         df['Heart_Rate'] = df[hr_matches[0]] if hr_matches else None
@@ -207,6 +203,26 @@ def load_garmin_data():
         df['Month_Name'] = df['Date'].dt.strftime('%b')
         df['Day_Name'] = df['Date'].dt.day_name()
         df['Distance_KM'] = pd.to_numeric(df[dist_col], errors='coerce').fillna(0)
+        
+        # -----------------------------------------------------------------
+        # EXPLICIT VERIFIED RACE MATRIX
+        # -----------------------------------------------------------------
+        RACE_REGISTRY = {
+            "2024-10-20": {"name": "Vedanta Delhi Half Marathon", "bib": "3258", "note": ""},
+            "2024-12-08": {"name": "Indian Navy 21K", "bib": "23781", "note": ""},
+            "2024-12-15": {"name": "Tata Steel World 25K Kolkata", "bib": "4653", "note": ""},
+            "2025-09-21": {"name": "Berlin Full Marathon", "bib": "76975", "note": ""},
+            "2025-10-12": {"name": "Vedanta Delhi Half Marathon", "bib": "5654", "note": ""},
+            "2025-12-21": {"name": "Tata Steel World 25K Kolkata", "bib": "4895", "note": ""},
+            "2026-01-18": {"name": "Tata Mumbai Full Marathon", "bib": "11435", "note": ""},
+            "2026-04-26": {"name": "TCS World 10K Bengaluru", "bib": "32357", "note": "PROCAM SLAM COMPLETED"}
+        }
+        
+        date_str_series = df['Date'].dt.strftime('%Y-%m-%d')
+        df['Race_Tag'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['name'] if x in RACE_REGISTRY else None)
+        df['Race_Bib'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['bib'] if x in RACE_REGISTRY else None)
+        df['Race_Note'] = date_str_series.apply(lambda x: RACE_REGISTRY[x]['note'] if x in RACE_REGISTRY else None)
+        # -----------------------------------------------------------------
         
         def parse_pace(x):
             try:
@@ -326,7 +342,7 @@ else:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("""<div class="chart-container-box"><h3>Annual Training Volume</h3>""", unsafe_allow_html=True)
+            st.markdown("""<div class="chart-container-box"><h2>Annual Training Volume</h2>""", unsafe_allow_html=True)
             yoy_volume = f_df.groupby('Year')['Distance_KM'].sum().reset_index()
             yoy_volume['Year'] = yoy_volume['Year'].astype(str)
             
@@ -382,13 +398,10 @@ else:
         if f_df.empty:
             st.warning("Insufficient data parameters matching current selection.")
         else:
-            # Fact Extraction Logic Block
-            # 1. Peak Mileage Single Run
             longest_run_row = f_df.loc[f_df['Distance_KM'].idxmax()]
             longest_dist = longest_run_row['Distance_KM']
             longest_date = longest_run_row['Date'].strftime('%B %d, %Y')
             
-            # 2. Fastest Workout Effort (Filtered for runs > 5KM to avoid noise)
             valid_efforts = f_df[(f_df['Distance_KM'] >= 5.0) & (f_df['Pace_Decimal'].notna())]
             if not valid_efforts.empty:
                 fastest_row = valid_efforts.loc[valid_efforts['Pace_Decimal'].idxmin()]
@@ -399,21 +412,18 @@ else:
                 fastest_pace = "No data"
                 fastest_meta = "Minimum distance threshold 5KM"
 
-            # 3. Peak Training Block Month (Highest collective volume)
             monthly_totals = f_df.groupby(['Year', 'Month_Name'])['Distance_KM'].sum().reset_index()
             peak_month_row = monthly_totals.loc[monthly_totals['Distance_KM'].idxmax()]
             peak_month_str = f"{peak_month_row['Month_Name']} {peak_month_row['Year']}"
             peak_month_vol = f"{peak_month_row['Distance_KM']:.1f} KM"
 
-            # 4. Consistency Architecture: Primary Training Window
             day_counts = f_df['Day_Name'].value_counts()
             dominant_day = day_counts.index[0]
             dominant_day_count = f"{day_counts.iloc[0]} Sessions"
 
-            # Render Analytics Grid Cards
             st.markdown(f"""
                 <div class="fact-grid">
-                    <div class="fact-card">
+                    <div class="fact-card" style="border-top:3px solid #ff4757;">
                         <div class="fact-title">Peak Endurance Distance</div>
                         <div class="fact-value">{longest_dist:.2f} KM</div>
                         <div class="fact-sub">Recorded on {longest_date}</div>
@@ -436,37 +446,54 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-            # Geographic and Named Race Footprint Breakdown
-            st.markdown("""<div class="chart-container-box"><h3>Geographic Footprint and Event History</h3>""", unsafe_allow_html=True)
+            # Verified Event Registry Panel
+            st.markdown("""<div class="chart-container-box"><h3>Official Competitive History Registry</h3>""", unsafe_allow_html=True)
             
-            # Extract unique words from tags and titles that match geographic indicators or official tags
-            raw_indicators = []
-            if 'Race_Tag' in f_df.columns:
-                raw_indicators += f_df['Race_Tag'].dropna().unique().tolist()
-            if 'Activity_Title' in f_df.columns:
-                # Isolate unique named workouts omitting generic default titles
-                unique_titles = f_df['Activity_Title'].dropna().unique()
-                filtered_titles = [t for t in unique_titles if "run" not in t.lower() and "morning" not in t.lower() and "evening" not in t.lower()]
-                raw_indicators += filtered_titles
+            registered_races = f_df[f_df['Race_Tag'].notna()].sort_values(by='Date', ascending=False)
             
-            # Deduplicate entries cleanly
-            clean_footprints = sorted(list(set([str(item).strip() for item in raw_indicators if len(str(item).strip()) > 1])))
-            
-            if clean_footprints:
-                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-bottom:15px;'>The data engine parsed the following historical event registrations and locations from your activity metadata:</p>", unsafe_allow_html=True)
+            if not registered_races.empty:
+                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-bottom:20px;'>The following verified competitive profiles have been linked and cross-referenced via your secure date registry:</p>", unsafe_allow_html=True)
                 
-                # Render clean structural layout blocks for tags
-                footprint_cols = st.columns(3)
-                for i, place in enumerate(clean_footprints):
-                    col_idx = i % 3
-                    with footprint_cols[col_idx]:
-                        st.markdown(f"""
-                            <div style='background:#1e293b; padding:12px 20px; border-radius:4px; margin-bottom:10px; border-left:3px solid #00f0ff; color:#ffffff; font-family:monospace; font-size:0.9rem;'>
-                                // {place.upper()}
+                for _, row in registered_races.iterrows():
+                    p_val = row['Pace_Decimal']
+                    p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
+                    r_date = row['Date'].strftime('%B %d, %Y')
+                    bib_string = f" // BIB: {row['Race_Bib']}" if row['Race_Bib'] else ""
+                    
+                    # Determine dynamic marathon highlighting overrides
+                    is_full_marathon = row['Category'] == "Full Marathon"
+                    card_left_border = "#ff4757" if is_full_marathon else "#ccff00"
+                    card_bg_style = "background:#1a1215;" if is_full_marathon else "background:#161d2a;"
+                    
+                    # Base tags line
+                    class_tag = "<div style='color:#ff4757; font-size:0.7rem; font-weight:800; font-family:monospace; margin-bottom:4px;'>// PRESTIGE CLASS: 42.195KM FULL MARATHON</div>" if is_full_marathon else ""
+                    
+                    # Achievement Note Engine
+                    note_markup = ""
+                    if pd.notna(row['Race_Note']) and row['Race_Note'] != "":
+                        note_color = "#ff4757" if is_full_marathon else "#ccff00"
+                        note_markup = f"""
+                        <div style='margin-top: 10px; background: rgba(255, 71, 87, 0.08); border: 1px solid {note_color}; padding: 6px 14px; border-radius: 4px; color: {note_color}; font-size: 0.75rem; font-weight: 800; display: inline-block; letter-spacing: 1px; font-family: monospace;'>
+                            // ACCOMPLISHMENT: {row['Race_Note'].upper()}
+                        </div>
+                        """
+                    
+                    st.markdown(f"""
+                        <div style='{card_bg_style} padding:18px 24px; border-radius:6px; margin-bottom:14px; border-left:4px solid {card_left_border}; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;'>
+                            <div>
+                                {class_tag}
+                                <div style='color:#ffffff; font-weight:800; font-size:1.15rem; text-transform:uppercase;'>{row['Race_Tag']}{bib_string}</div>
+                                <div style='color:#64748b; font-size:0.75rem; font-family:monospace; margin-top:3px;'>CONQUERED: {r_date}</div>
+                                {note_markup}
                             </div>
-                        """, unsafe_allow_html=True)
+                            <div style='text-align:right; font-family:monospace;'>
+                                <div style='color:#ffffff; font-weight:800; font-size:1.2rem;'>{row['Distance_KM']:.2f} KM</div>
+                                <div style='color:#00f0ff; font-size:0.75rem; text-transform:uppercase; font-weight:700;'>PACE: {p_str}</div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
             else:
-                st.markdown("<p style='color:#64748b;'>No unique race metadata or custom geographic title strings parsed in this filter subset. Update the activity name rows in your source document to populate locations.</p>", unsafe_allow_html=True)
+                st.markdown("<p style='color:#64748b;'>No official verified race dates found within the currently active filter window.</p>", unsafe_allow_html=True)
             
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -490,8 +517,14 @@ else:
                 hr_str = f"{int(hr_val)} bpm" if pd.notna(hr_val) and hr_val > 0 else "--"
                 race_label = f" // {row['Race_Tag']}" if pd.notna(row['Race_Tag']) else ""
                 
+                # Apply high-contrast highlighting specifically for full marathons inside raw logs
+                is_full = row['Category'] == "Full Marathon"
+                stripe_color = "#ff4757" if is_full else "#00f0ff"
+                bg_color = "background: #1a1215;" if is_full else "background: #121721;"
+                category_label_color = "#ff4757" if is_full else "#ccff00"
+                
                 st.markdown(f"""
-                    <div class="flashcard-row">
+                    <div class="flashcard-row-base" style="{bg_color} border-left: 4px solid {stripe_color};">
                         <div class="flashcard-left">
                             <div class="flashcard-date-block">
                                 <div class="flashcard-date-main">{date_main}</div>
@@ -499,7 +532,7 @@ else:
                             </div>
                             <div>
                                 <div class="flashcard-title">{row['Activity_Title']}{race_label}</div>
-                                <div class="flashcard-category">{row['Category']}</div>
+                                <div class="flashcard-category" style="color: {category_label_color};">{row['Category'].upper()}</div>
                             </div>
                         </div>
                         <div class="flashcard-metrics-group">
