@@ -10,13 +10,11 @@ st.set_page_config(page_title="Running Journey", page_icon="🏃‍♂️", layo
 # Inject explicit clean-light typography and structural CSS
 st.markdown("""
     <style>
-    /* Force overall app white background */
     .stApp {
         background-color: #ffffff !important;
         color: #212529 !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     }
-    /* Selectbox and sidebar text alignment */
     html, body, [data-testid="stMarkdownContainer"] p, p, label, .stSelectbox div {
         color: #333333 !important;
         font-family: 'Inter', sans-serif !important;
@@ -26,7 +24,6 @@ st.markdown("""
         font-family: 'Inter', sans-serif !important;
         font-weight: 700 !important;
     }
-    /* Minimalist Premium KPI Cards for Light Mode */
     .kpi-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -45,7 +42,6 @@ st.markdown("""
         font-size: 2.2rem;
         font-weight: 800;
         color: #0076d6 !important;
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     }
     .kpi-label {
         font-size: 0.85rem;
@@ -54,14 +50,10 @@ st.markdown("""
         letter-spacing: 1.2px;
         margin-top: 5px;
     }
-    .dataframe {
-        color: #212529 !important;
-        background-color: #ffffff !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
-# 2. DATA PROCESSING & EXTENSION ENGINE
+# 2. DATA PROCESSING ENGINE
 @st.cache_data
 def load_garmin_data():
     if not os.path.exists("activities.csv"):
@@ -78,7 +70,6 @@ def load_garmin_data():
         df['Year'] = df['Date'].dt.year
         df['Month_Num'] = df['Date'].dt.month
         df['Month_Name'] = df['Date'].dt.strftime('%b')
-        df['Year_Month'] = df['Date'].dt.strftime('%Y-%m')
         df['Distance_KM'] = pd.to_numeric(df[dist_col], errors='coerce').fillna(0)
         
         def parse_pace(x):
@@ -97,7 +88,6 @@ def load_garmin_data():
         else:
             df['Heart_Rate'] = None
             
-        # UPDATED SEGMENTATION BASED ON EXACT REQUEST
         def segment_run(km):
             if km >= 42.0: return "Full Marathon 🏆"
             elif km >= 21.2: return "Between Half & Full 📈"
@@ -114,12 +104,12 @@ def load_garmin_data():
 df = load_garmin_data()
 
 # MAIN HEADER BLOCK
-st.markdown("<h1 style='text-align: center; margin-bottom: 5px; color: #111111;'>🏃‍♂️ Running Journey</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #6c757d !important;'>A modern, structural look at your continuous endurance legacy.</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #111111;'>🏃‍♂️ Running Journey</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #6c757d !important;'>A modern look at your continuous endurance legacy.</p>", unsafe_allow_html=True)
 st.markdown("<hr style='border-color: #e9ecef; margin-bottom: 30px;'>", unsafe_allow_html=True)
 
 if df is None:
-    st.error("Awaiting execution connection to 'activities.csv'.")
+    st.error("Missing 'activities.csv' data file link.")
 else:
     # CORE METRICS DISPLAY PANEL
     total_runs = len(df)
@@ -153,15 +143,8 @@ else:
     with col1:
         st.markdown("### 📊 Year-on-Year Training Volume")
         yoy_volume = df.groupby('Year')['Distance_KM'].sum().reset_index()
-        fig_yoy = px.bar(
-            yoy_volume, x='Year', y='Distance_KM',
-            text_auto='.1f', color='Distance_KM',
-            color_continuous_scale='Blues'
-        )
-        fig_yoy.update_layout(
-            template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", 
-            plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Total Distance (KM)"
-        )
+        fig_yoy = px.bar(yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', color='Distance_KM', color_continuous_scale='Blues')
+        fig_yoy.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Total Distance (KM)")
         st.plotly_chart(fig_yoy, use_container_width=True)
 
     with col2:
@@ -169,18 +152,49 @@ else:
         cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "Between 10K and 21K ⚡", "10K Runs 🎯", "Less than 10K 🌱"]
         cat_counts = df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
         cat_counts.columns = ['Category', 'Runs']
-        
-        fig_cat = px.bar(
-            cat_counts, x='Runs', y='Category', orientation='h',
-            color='Runs', color_continuous_scale='Teal'
-        )
-        fig_cat.update_layout(
-            template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", 
-            plot_bgcolor="rgba(0,0,0,0)", xaxis_title="Number of Activities", yaxis_title=""
-        )
+        fig_cat = px.bar(cat_counts, x='Runs', y='Category', orientation='h', color='Runs', color_continuous_scale='Teal')
+        fig_cat.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis_title="Number of Activities", yaxis_title="")
         st.plotly_chart(fig_cat, use_container_width=True)
 
     st.markdown("<hr style='border-color: #e9ecef;'>", unsafe_allow_html=True)
 
-    # VISUALIZATION ROW 2: NEW MONTHLY BREAKDOWN EXPLORER
-    st.markdown("### 📅 Monthly
+    # VISUALIZATION ROW 2: MONTHLY BREAKDOWN TIMELINE
+    st.markdown("### 📅 Monthly Volume Breakdown Timeline")
+    monthly_volume = df.groupby(['Year', 'Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
+    monthly_volume = monthly_volume.sort_values(['Year', 'Month_Num'])
+    monthly_volume['Timeline'] = monthly_volume['Year'].astype(str) + " - " + monthly_volume['Month_Name']
+    
+    fig_month = px.bar(monthly_volume, x='Timeline', y='Distance_KM', color='Year', color_discrete_sequence=px.colors.qualitative.Safe)
+    fig_month.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Distance (KM)", xaxis={'type': 'category'})
+    st.plotly_chart(fig_month, use_container_width=True)
+
+    st.markdown("<hr style='border-color: #e9ecef;'>", unsafe_allow_html=True)
+
+    # VISUALIZATION ROW 3: PACING AND HEALTH
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.markdown("### 📈 Pacing Profile over Time")
+        pace_df = df[df['Pace_Decimal'].notna() & (df['Pace_Decimal'] < 12) & (df['Pace_Decimal'] > 3)].sort_values('Date')
+        fig_pace = px.scatter(pace_df, x='Date', y='Pace_Decimal', color='Distance_KM', color_continuous_scale='Electric', trendline="lowess", trendline_color_override="#0076d6")
+        fig_pace.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Pace (Min/KM)", yaxis=dict(autorange="reversed"))
+        st.plotly_chart(fig_pace, use_container_width=True)
+
+    with col4:
+        st.markdown("### ❤️ Cardiovascular Fitness Trend")
+        if df['Heart_Rate'].notna().sum() > 0:
+            hr_df = df[df['Heart_Rate'].notna() & (df['Heart_Rate'] > 90)].sort_values('Date')
+            fig_hr = px.line(hr_df, x='Date', y='Heart_Rate', color_discrete_sequence=["#ef4444"])
+            fig_hr.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title="Avg Heart Rate (BPM)")
+            st.plotly_chart(fig_hr, use_container_width=True)
+        else:
+            st.info("Heart Rate data columns not explicitly found or filled in the uploaded log dataset.")
+
+    # TOP LEADERS RECOGNITION
+    st.markdown("<hr style='border-color: #e9ecef;'>", unsafe_allow_html=True)
+    st.markdown("### 🏅 All-Time Fastest Efforts Leaderboard")
+    
+    if df['Pace_Decimal'].notna().sum() > 0:
+        fastest_efforts = df[df['Pace_Decimal'].notna() & (df['Distance_KM'] > 2)].sort_values(by='Pace_Decimal', ascending=True).head(5)
+        for idx, row in fastest_efforts.iterrows():
+            st.markdown(f"🏁 **{row['Date'].strftime('%d %B %Y')}** — Run distance of **{row['Distance_KM']:.2f} KM** completed with a pace of **{int(row['Pace_Decimal'])}:{int((row['Pace_Decimal']%1)*60):0
