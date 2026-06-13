@@ -3,17 +3,15 @@ import pandas as pd
 import plotly.express as px
 import os
 
-# 1. 2026 ATHLETIC PERFORMANCE PAGE SETUP
+# 1. 2026 PREMIUM ATHLETIC MINIMALIST PAGE SETUP
 st.set_page_config(
-    page_title="RUNNING JOURNEY // ENGINE",
-    page_icon="⚡",
+    page_title="RUNNING JOURNEY // METRIC ENGINE",
     layout="wide"
 )
 
-# Core layout styling & flashcard grid components matching image_ee5dbb.png
+# Custom typography and styled container boxes (Emoji-free modern sports look)
 st.markdown("""
     <style>
-    /* Dark Matte Carbon Canvas */
     .stApp {
         background-color: #0b0e14 !important;
         color: #e2e8f0 !important;
@@ -27,7 +25,7 @@ st.markdown("""
         text-transform: uppercase !important;
         letter-spacing: 1.5px !important;
     }
-    /* Stadium LED Style Ticker */
+    /* Stadium Style Ticker */
     .ticker-wrap {
         background: #000000;
         padding: 14px;
@@ -36,7 +34,7 @@ st.markdown("""
         border-left: 4px solid #ccff00;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
-    /* KPI Display Panel Grid */
+    /* KPI Metric Containers */
     .kpi-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -51,7 +49,30 @@ st.markdown("""
         text-align: left;
         border-bottom: 3px solid #1e293b;
     }
-    /* Streamlined Performance List Flashcard System */
+    .kpi-value {
+        font-size: 2.4rem;
+        font-weight: 900;
+        color: #ffffff !important;
+        line-height: 1;
+        font-family: monospace;
+    }
+    .kpi-label {
+        font-size: 0.75rem;
+        color: #ccff00 !important;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-top: 8px;
+        font-weight: 700;
+    }
+    /* Modern Content Box Container Wrapper */
+    .chart-container-box {
+        background-color: #121721 !important;
+        border: 1px solid #1e293b !important;
+        border-radius: 8px !important;
+        padding: 24px !important;
+        margin-bottom: 25px !important;
+    }
+    /* Flashcard Row Systems */
     .flashcard-row {
         background: #121721;
         border: 1px solid #1e293b;
@@ -68,18 +89,8 @@ st.markdown("""
     .flashcard-left {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 25px;
         min-width: 250px;
-    }
-    .flashcard-icon {
-        background: rgba(0, 240, 255, 0.1);
-        color: #00f0ff;
-        padding: 10px;
-        border-radius: 50%;
-        font-size: 1.3rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
     .flashcard-date-block {
         line-height: 1.2;
@@ -131,7 +142,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. DATA PROCESSING ENGINE
+# 2. CORE DATA READING ENGINE
 @st.cache_data
 def load_garmin_data():
     if not os.path.exists("activities.csv"):
@@ -140,19 +151,17 @@ def load_garmin_data():
         df = pd.read_csv("activities.csv")
         cols = list(df.columns)
         
-        # Locate core data series
         date_col = [c for c in cols if 'Date' in c or 'Time' in c or 'Start' in c][0]
         dist_col = [c for c in cols if 'Distance' in c][0]
         pace_col = [c for c in cols if 'Pace' in c or 'Speed' in c][0]
         
-        # Safely extract supplementary metrics seen in image_ee5dbb.png
         title_matches = [c for c in cols if 'Title' in c or 'Name' in c]
         time_matches = [c for c in cols if 'Duration' in c or 'Time' in c]
         hr_matches = [c for c in cols if 'Heart' in c or 'HR' in c or 'bpm' in c]
         tag_matches = [c for c in cols if 'Tag' in c or 'Race' in c]
         
         df['Race_Tag'] = df[tag_matches[0]] if tag_matches else None
-        df['Activity_Title'] = df[title_matches[0]] if title_matches else "Mumbai Running"
+        df['Activity_Title'] = df[title_matches[0]] if title_matches else "Training Run"
         df['Duration_Raw'] = df[time_matches[0]] if time_matches else "--:--"
         df['Heart_Rate'] = df[hr_matches[0]] if hr_matches else None
         
@@ -174,12 +183,12 @@ def load_garmin_data():
         df['Pace_Decimal'] = df[pace_col].apply(parse_pace)
         
         def segment_run(km):
-            if km >= 42.0: return "Full Marathon 🏆"
-            elif km >= 21.2: return "Between Half & Full 📈"
-            elif km >= 21.0: return "Half Marathon 🥈"
-            elif km > 10.5: return "Between 10K and 21K ⚡"
-            elif km >= 9.8: return "10K Runs 🎯"
-            else: return "Less than 10K 🌱"
+            if km >= 42.0: return "Full Marathon"
+            elif km >= 21.2: return "Between Half and Full"
+            elif km >= 21.0: return "Half Marathon"
+            elif km > 10.5: return "Between 10K and 21K"
+            elif km >= 9.8: return "10K Runs"
+            else: return "Less than 10K"
             
         df['Category'] = df['Distance_KM'].apply(segment_run)
         return df
@@ -188,16 +197,16 @@ def load_garmin_data():
 
 df = load_garmin_data()
 
-# HEADER ARCHITECTURE
-st.markdown("<h1 style='text-align: left; color: #ffffff; font-size: 2.8rem; font-weight: 900; margin-bottom:0px;'>RUNNING JOURNEY // ENGINE</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: left; color: #ccff00 !important; font-weight:700; letter-spacing:1px; margin-top:5px;'>MUTATION // ENDURANCE // LIFELONG PERFORMANCE ARCHIVE</p>", unsafe_allow_html=True)
+# HEADER TERMINAL
+st.markdown("<h1 style='text-align: left; color: #ffffff; font-size: 2.8rem; font-weight: 900; margin-bottom:0px;'>RUNNING JOURNEY</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: left; color: #ccff00 !important; font-weight:700; letter-spacing:1px; margin-top:5px;'>ENDURANCE ARCHIVE // PERFORMANCE LOG</p>", unsafe_allow_html=True)
 st.markdown("<hr style='border-color: #1e293b; margin-top: 15px; margin-bottom: 25px;'>", unsafe_allow_html=True)
 
 if df is None:
-    st.error("Awaiting valid data connection parameter sync.")
+    st.error("Missing data sheet reference linking parameters.")
 else:
-    # 3. CONTROL BAR PANEL (TOP-LEVEL GLOBAL FILTERS)
-    st.markdown("### 🎛️ CONTROL CENTER")
+    # 3. GLOBAL CONTROL ROOM FILTERS
+    st.markdown("### CONTROL CENTER")
     filter_col1, filter_col2 = st.columns(2)
     
     with filter_col1:
@@ -205,10 +214,10 @@ else:
         selected_year = st.selectbox("ISOLATE REGISTRATION YEAR:", options=year_list)
         
     with filter_col2:
-        cat_list = ["ALL CATEGORIES"] + sorted(list(df['Category'].unique()))
+        cat_list = ["ALL CATEGORIES"] + ["Full Marathon", "Between Half and Full", "Half Marathon", "Between 10K and 21K", "10K Runs", "Less than 10K"]
         selected_cat = st.selectbox("ISOLATE DISTANCE THRESHOLD:", options=cat_list)
         
-    # Execute cross-filter sequencing
+    # Isolate global dataframe parameters
     f_df = df.copy()
     if selected_year != "ALL TIME":
         f_df = f_df[f_df['Year'] == int(selected_year)]
@@ -217,25 +226,25 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 4. STADIUM LED TICKER (ALL-TIME PR RECORDS - NOT OVERRIDDEN BY FILTER)
+    # 4. STADIUM LED TICKER (ALL-TIME PR BENCHMARKS)
     ticker_items = []
     df_10k = df[(df['Distance_KM'] >= 9.5) & (df['Distance_KM'] <= 11.5) & (df['Pace_Decimal'].notna())]
     if not df_10k.empty:
         best_10k = df_10k.loc[df_10k['Pace_Decimal'].idxmin()]
         p_min, p_sec = int(best_10k['Pace_Decimal']), int((best_10k['Pace_Decimal'] % 1) * 60)
-        ticker_items.append(f"PR_10K: {best_10k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
+        ticker_items.append(f"PR 10K: {best_10k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
         
     df_21k = df[(df['Distance_KM'] >= 20.5) & (df['Distance_KM'] <= 22.5) & (df['Pace_Decimal'].notna())]
     if not df_21k.empty:
         best_21k = df_21k.loc[df_21k['Pace_Decimal'].idxmin()]
         p_min, p_sec = int(best_21k['Pace_Decimal']), int((best_21k['Pace_Decimal'] % 1) * 60)
-        ticker_items.append(f"PR_21K: {best_21k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
+        ticker_items.append(f"PR 21K: {best_21k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
         
     df_42k = df[(df['Distance_KM'] >= 41.0) & (df['Pace_Decimal'].notna())]
     if not df_42k.empty:
         best_42k = df_42k.loc[df_42k['Pace_Decimal'].idxmin()]
         p_min, p_sec = int(best_42k['Pace_Decimal']), int((best_42k['Pace_Decimal'] % 1) * 60)
-        ticker_items.append(f"PR_FULL: {best_42k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
+        ticker_items.append(f"PR FULL MARATHON: {best_42k['Distance_KM']:.2f}KM @ {p_min}:{p_sec:02d}/KM")
         
     if ticker_items:
         spacer = " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "
@@ -243,149 +252,163 @@ else:
         st.markdown(f"""
             <div class="ticker-wrap">
                 <marquee behavior="scroll" direction="left" scrollamount="6" style="color: #ccff00; font-weight: 800; font-family: monospace; font-size: 1.1rem;">
-                    ALL-TIME BENCHMARKS // {full_ticker_text}
+                    ALL-TIME RECORD BENCHMARKS // {full_ticker_text}
                 </marquee>
             </div>
         """, unsafe_allow_html=True)
 
-    # 5. DYNAMIC CARBON KPI PANEL (RESPONDS TO FILTERS)
-    total_runs = len(f_df)
-    total_km = f_df['Distance_KM'].sum()
-    avg_run_dist = f_df['Distance_KM'].mean() if total_runs > 0 else 0
-    tracked_years = f_df['Year'].nunique()
-    
-    st.markdown(f"""
-        <div class="kpi-container">
-            <div class="kpi-card">
-                <div class="kpi-value">{total_runs}</div>
-                <div class="kpi-label">// INDEXED_ACTIVITIES</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{total_km:,.1f} KM</div>
-                <div class="kpi-label">// TARGET_VOLUME_CONQUERED</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{avg_run_dist:.2f} KM</div>
-                <div class="kpi-label">// MEAN_SESSION_DISTANCE</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value">{tracked_years}</div>
-                <div class="kpi-label">// FILTER_ACTIVE_YEARS</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    # 5. TABBED ARCHITECTURE DEPLOYMENT
+    tab_dashboard, tab_feed = st.tabs(["Overview and Analytics", "Activity Feed Log"])
 
-    # 6. VISUALIZATION ROW 1
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### 📊 CHRONO TRAINING VOLUME")
-        yoy_volume = f_df.groupby('Year')['Distance_KM'].sum().reset_index()
-        yoy_volume['Year'] = yoy_volume['Year'].astype(str)
+    with tab_dashboard:
+        # KPI Core Summary Blocks
+        total_runs = len(f_df)
+        total_km = f_df['Distance_KM'].sum()
+        avg_run_dist = f_df['Distance_KM'].mean() if total_runs > 0 else 0
+        tracked_years = f_df['Year'].nunique()
         
-        fig_yoy = px.bar(
-            yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
-            color='Year', color_discrete_sequence=['#00f0ff', '#ccff00', '#ff4757']
-        )
-        fig_yoy.update_layout(template="plotly_dark")
-        fig_yoy.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        fig_yoy.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
-        fig_yoy.update_layout(showlegend=False)
-        st.plotly_chart(fig_yoy, use_container_width=True)
-
-    with col2:
-        st.markdown("### 🗂️ DISTRIBUTION MATRIX")
-        cat_order = ["Full Marathon 🏆", "Between Half & Full 📈", "Half Marathon 🥈", "Between 10K and 21K ⚡", "10K Runs 🎯", "Less than 10K 🌱"]
-        cat_counts = f_df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
-        cat_counts.columns = ['Category', 'Runs']
-        
-        fig_cat = px.bar(cat_counts, x='Runs', y='Category', orientation='h', color_discrete_sequence=['#ccff00'])
-        fig_cat.update_layout(template="plotly_dark")
-        fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        fig_cat.update_layout(xaxis_title="FREQUENCY", yaxis_title="")
-        st.plotly_chart(fig_cat, use_container_width=True)
-
-    # 7. VISUALIZATION ROW 2: MONTHLY COMPONENT
-    st.markdown("### 📅 INTRA-ANNUAL SPLITS")
-    monthly_grouped = f_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
-    all_months = pd.DataFrame({
-        'Month_Num': range(1, 13),
-        'Month_Name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    })
-    monthly_volume = pd.merge(all_months, monthly_grouped, on=['Month_Num', 'Month_Name'], how='left').fillna(0)
-    
-    fig_month = px.bar(
-        monthly_volume, x='Month_Name', y='Distance_KM', 
-        text_auto='.1f', color_discrete_sequence=['#00f0ff']
-    )
-    fig_month.update_layout(template="plotly_dark")
-    fig_month.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-    fig_month.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
-    fig_month.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': all_months['Month_Name']})
-    st.plotly_chart(fig_month, use_container_width=True)
-
-    st.markdown("<hr style='border-color: #1e293b; margin-top: 40px; margin-bottom: 40px;'>", unsafe_allow_html=True)
-
-    # 8. DECK ARCHITECTURE: PERFORMANCE FLASHCARDS (BOTTOM LAYER)
-    st.markdown("### 📋 ACTIVITY FEED // RECONSTRUCTION")
-    
-    if f_df.empty:
-        st.warning("No metrics matched your current cross-filter parameters.")
-    else:
-        # Sort chronologically backwards (newest activities first) as seen in image_ee5dbb.png
-        sorted_cards = f_df.sort_values(by='Date', ascending=False)
-        
-        # Performance pagination safety check (renders latest 50 match targets)
-        display_limit = 50
-        for idx, (_, row) in enumerate(sorted_cards.head(display_limit).iterrows()):
-            # Parse Date Formats cleanly
-            date_main = row['Date'].strftime('%b %d')
-            date_sub = row['Date'].strftime('%Y')
-            
-            # Format Pacing String
-            p_val = row['Pace_Decimal']
-            p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
-            
-            # Optional Heart Rate Badge
-            hr_val = row['Heart_Rate']
-            hr_str = f"{int(hr_val)} bpm" if pd.notna(hr_val) and hr_val > 0 else "--"
-            
-            # Identify special tag lines
-            race_label = f" // 🏆 {row['Race_Tag']}" if pd.notna(row['Race_Tag']) else ""
-            
-            # Render layout block resembling image_ee5dbb.png template structural styles
-            st.markdown(f"""
-                <div class="flashcard-row">
-                    <div class="flashcard-left">
-                        <div class="flashcard-icon">🏃‍♂️</div>
-                        <div class="flashcard-date-block">
-                            <div class="flashcard-date-main">{date_main}</div>
-                            <div class="flashcard-date-sub">{date_sub}</div>
-                        </div>
-                        <div>
-                            <div class="flashcard-title">{row['Activity_Title']}{race_label}</div>
-                            <div class="flashcard-category">{row['Category']}</div>
-                        </div>
-                    </div>
-                    <div class="flashcard-metrics-group">
-                        <div class="flashcard-metric">
-                            <div class="flashcard-metric-val">{row['Distance_KM']:.2f} km</div>
-                            <div class="flashcard-metric-lbl">Distance</div>
-                        </div>
-                        <div class="flashcard-metric">
-                            <div class="flashcard-metric-val">{row['Duration_Raw']}</div>
-                            <div class="flashcard-metric-lbl">Time</div>
-                        </div>
-                        <div class="flashcard-metric">
-                            <div class="flashcard-metric-val">{p_str}</div>
-                            <div class="flashcard-metric-lbl">Avg Pace</div>
-                        </div>
-                        <div class="flashcard-metric">
-                            <div class="flashcard-metric-val" style="color: #ff4757;">{hr_str}</div>
-                            <div class="flashcard-metric-lbl">Avg HR</div>
-                        </div>
-                    </div>
+        st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <div class="kpi-value">{total_runs}</div>
+                    <div class="kpi-label">// INDEXED ACTIVITIES</div>
                 </div>
-            """, unsafe_allow_html=True)
+                <div class="kpi-card">
+                    <div class="kpi-value">{total_km:,.1f} KM</div>
+                    <div class="kpi-label">// TOTAL DISTANCE CONQUERED</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">{avg_run_dist:.2f} KM</div>
+                    <div class="kpi-label">// MEAN SESSION VOLUME</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">{tracked_years}</div>
+                    <div class="kpi-label">// ACTIVE VOLUME YEARS</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # ROW 1 CONTAINERS: VOLUME AND CATEGORIES
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""<div class="chart-container-box"><h3>Annual Training Volume</h3>""", unsafe_allow_html=True)
+            yoy_volume = f_df.groupby('Year')['Distance_KM'].sum().reset_index()
+            yoy_volume['Year'] = yoy_volume['Year'].astype(str)
             
-        if len(sorted_cards) > display_limit:
-            st.markdown(f"<p style='text-align:center; color:#64748b;'>Truncated at {display_limit} activities to optimize layout throughput.</p>", unsafe_allow_html=True)
+            fig_yoy = px.bar(
+                yoy_volume, x='Year', y='Distance_KM', text_auto='.1f', 
+                color='Year', color_discrete_sequence=['#00f0ff', '#ccff00', '#ff4757']
+            )
+            fig_yoy.update_layout(template="plotly_dark")
+            fig_yoy.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_yoy.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
+            fig_yoy.update_layout(showlegend=False)
+            st.plotly_chart(fig_yoy, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col2:
+            st.markdown("""<div class="chart-container-box"><h3>Distribution Matrix</h3>""", unsafe_allow_html=True)
+            cat_order = ["Full Marathon", "Between Half and Full", "Half Marathon", "Between 10K and 21K", "10K Runs", "Less than 10K"]
+            cat_counts = f_df['Category'].value_counts().reindex(cat_order).fillna(0).reset_index()
+            cat_counts.columns = ['Category', 'Runs']
+            
+            fig_cat = px.bar(cat_counts, x='Runs', y='Category', orientation='h', color_discrete_sequence=['#ccff00'])
+            fig_cat.update_layout(template="plotly_dark")
+            fig_cat.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            fig_cat.update_layout(xaxis_title="FREQUENCY", yaxis_title="")
+            st.plotly_chart(fig_cat, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # ROW 2 CONTAINER: NON-MERGED INTRA-ANNUAL TIMELINE SEQUENCING
+        st.markdown("""<div class="chart-container-box"><h3>Intra-Annual Splits Timeline</h3>""", unsafe_allow_html=True)
+        
+        if selected_year == "ALL TIME":
+            # Group chronologically across all tracked months and years sequentially
+            monthly_grouped = f_df.groupby(['Year', 'Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
+            monthly_grouped = monthly_grouped.sort_values(['Year', 'Month_Num'])
+            # Build continuous chronological labels: e.g., Jan '24, Feb '24
+            monthly_grouped['Timeline'] = monthly_grouped['Month_Name'] + " '" + monthly_grouped['Year'].astype(str).str[-2:]
+            
+            fig_month = px.bar(
+                monthly_grouped, x='Timeline', y='Distance_KM', text_auto='.1f',
+                color='Year', color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            fig_month.update_layout(xaxis={'type': 'category'})
+        else:
+            # Traditional 12-month fixed grid for a single standalone year target
+            monthly_grouped = f_df.groupby(['Month_Num', 'Month_Name'])['Distance_KM'].sum().reset_index()
+            all_months = pd.DataFrame({
+                'Month_Num': range(1, 13),
+                'Month_Name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            })
+            monthly_volume = pd.merge(all_months, monthly_grouped, on=['Month_Num', 'Month_Name'], how='left').fillna(0)
+            
+            fig_month = px.bar(
+                monthly_volume, x='Month_Name', y='Distance_KM', 
+                text_auto='.1f', color_discrete_sequence=['#00f0ff']
+            )
+            fig_month.update_layout(xaxis={'categoryorder': 'array', 'categoryarray': all_months['Month_Name']})
+            
+        fig_month.update_layout(template="plotly_dark")
+        fig_month.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig_month.update_layout(yaxis_title="VOLUME (KM)", xaxis_title="")
+        st.plotly_chart(fig_month, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with tab_feed:
+        # FEED ARCHITECTURE LAYER
+        st.markdown("### ACTIVITY FEED LOG")
+        
+        if f_df.empty:
+            st.warning("No performance records match your active filtering configuration.")
+        else:
+            sorted_cards = f_df.sort_values(by='Date', ascending=False)
+            display_limit = 50
+            
+            for idx, (_, row) in enumerate(sorted_cards.head(display_limit).iterrows()):
+                date_main = row['Date'].strftime('%b %d')
+                date_sub = row['Date'].strftime('%Y')
+                
+                p_val = row['Pace_Decimal']
+                p_str = f"{int(p_val)}:{int((p_val % 1) * 60):02d} /km" if pd.notna(p_val) else "--:--"
+                
+                hr_val = row['Heart_Rate']
+                hr_str = f"{int(hr_val)} bpm" if pd.notna(hr_val) and hr_val > 0 else "--"
+                race_label = f" // {row['Race_Tag']}" if pd.notna(row['Race_Tag']) else ""
+                
+                st.markdown(f"""
+                    <div class="flashcard-row">
+                        <div class="flashcard-left">
+                            <div class="flashcard-date-block">
+                                <div class="flashcard-date-main">{date_main}</div>
+                                <div class="flashcard-date-sub">{date_sub}</div>
+                            </div>
+                            <div>
+                                <div class="flashcard-title">{row['Activity_Title']}{race_label}</div>
+                                <div class="flashcard-category">{row['Category']}</div>
+                            </div>
+                        </div>
+                        <div class="flashcard-metrics-group">
+                            <div class="flashcard-metric">
+                                <div class="flashcard-metric-val">{row['Distance_KM']:.2f} km</div>
+                                <div class="flashcard-metric-lbl">Distance</div>
+                            </div>
+                            <div class="flashcard-metric">
+                                <div class="flashcard-metric-val">{row['Duration_Raw']}</div>
+                                <div class="flashcard-metric-lbl">Time</div>
+                            </div>
+                            <div class="flashcard-metric">
+                                <div class="flashcard-metric-val">{p_str}</div>
+                                <div class="flashcard-metric-lbl">Avg Pace</div>
+                            </div>
+                            <div class="flashcard-metric">
+                                <div class="flashcard-metric-val" style="color: #ff4757;">{hr_str}</div>
+                                <div class="flashcard-metric-lbl">Avg HR</div>
+                            </div>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+            if len(sorted_cards) > display_limit:
+                st.markdown(f"<p style='text-align:center; color:#64748b;'>Truncated loop breakdown at {display_limit} items.</p>", unsafe_allow_html=True)
