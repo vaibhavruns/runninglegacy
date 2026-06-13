@@ -190,11 +190,18 @@ else:
         else:
             st.info("Heart Rate data columns not explicitly found or filled in the uploaded log dataset.")
 
-    # TOP LEADERS RECOGNITION
+    # TOP LEADERS RECOGNITION (FIXED LENGTH & CHOP PROOF)
     st.markdown("<hr style='border-color: #e9ecef;'>", unsafe_allow_html=True)
     st.markdown("### 🏅 All-Time Fastest Efforts Leaderboard")
     
     if df['Pace_Decimal'].notna().sum() > 0:
         fastest_efforts = df[df['Pace_Decimal'].notna() & (df['Distance_KM'] > 2)].sort_values(by='Pace_Decimal', ascending=True).head(5)
         for idx, row in fastest_efforts.iterrows():
-            st.markdown(f"🏁 **{row['Date'].strftime('%d %B %Y')}** — Run distance of **{row['Distance_KM']:.2f} KM** completed with a pace of **{int(row['Pace_Decimal'])}:{int((row['Pace_Decimal']%1)*60):0
+            p_min = int(row['Pace_Decimal'])
+            p_sec = int((row['Pace_Decimal'] % 1) * 60)
+            run_date = row['Date'].strftime('%d %B %Y')
+            dist_val = row['Distance_KM']
+            
+            # Short statements to completely avoid wrapping syntax limits
+            msg = f"🏁 **{run_date}** — Completed **{dist_val:.2f} KM** at a pace of **{p_min}:{p_sec:02d} /km**."
+            st.markdown(msg)
