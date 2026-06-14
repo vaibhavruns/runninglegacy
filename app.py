@@ -424,4 +424,39 @@ with t_rec:
 
     st.markdown('<div class="chart-container-box"><h3>Official Race Registry</h3>', unsafe_allow_html=True)
     pr_dates={best_effort(runs_all,lo,hi)["Date_Parsed"].date() for _,lo,hi in PB_BANDS if best_effort(runs_all,lo,hi) is not None}
-    races=f[f["Race_Tag"].notna()].copy(); races["_d"]=races["Date_Parsed"].
+    races=f[f["Race_Tag"].notna()].copy(); races["_d"]=races["Date_Parsed"].dt.date
+    races=races.sort_values("distance_km",ascending=False).drop_duplicates("_d").sort_values("Date_Parsed",ascending=False)
+    if races.empty: st.markdown('<p style="color:#64748b;">No registered races in this filter.</p>', unsafe_allow_html=True)
+    for _,r in races.iterrows():
+        full=r["Category_Custom"]=="Full Marathon"; acc=RED if full else LIME
+        chips=""
+        if r["Date_Parsed"].date() in pr_dates: chips+="<span style='background:#ccff00;color:#0b0e14;font-family:monospace;font-size:.6rem;font-weight:900;padding:2px 7px;border-radius:3px;letter-spacing:1px;margin-right:6px;'>PR</span>"
+        if r["Race_Note"]: chips+=f"<span style='color:{acc};font-family:monospace;font-size:.68rem;font-weight:800;'>{r['Race_Note']}</span>"
+        note=f"<div style='margin-top:4px;'>{chips}</div>" if chips else ""
+        st.markdown(f"""<div class="race-row" style="background:{'#1a1215' if full else '#161d2a'};border-left:4px solid {acc};">
+          <div><div style="color:#fff;font-weight:800;font-size:1.08rem;">{r['Race_Tag']}</div>
+          <div style="color:#64748b;font-size:.72rem;font-family:monospace;">{r['Date_Parsed'].strftime('%B %d, %Y')} &nbsp;\u00b7&nbsp; BIB {r['Race_Bib']}</div>{note}</div>
+          <div class="fm-group">
+            <div class="fm"><div class="fm-val">{r['distance_km']:.2f}</div><div class="fm-lbl">km</div></div>
+            <div class="fm"><div class="fm-val">{r['moving_time_hms']}</div><div class="fm-lbl">time</div></div>
+            <div class="fm"><div class="fm-val">{r['pace_str']}</div><div class="fm-lbl">/km</div></div>
+          </div></div>""", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ============================================================ ACTIVITY LOG
+with t_log:
+    st.markdown("<div class='section-h'>ACTIVITY LOG</div>", unsafe_allow_html=True)
+    for _,r in f.sort_values("Date_Parsed",ascending=False).head(60).iterrows():
+        full=r["Category_Custom"]=="Full Marathon"; acc=RED if full else CYAN
+        cad=f"{r['cadence_spm']:.0f}" if pd.notna(r["cadence_spm"]) else "--"
+        hr=f"{r['avg_hr']:.0f}" if pd.notna(r.get("avg_hr")) else "--"
+        st.markdown(f"""<div class="flashcard-row-base" style="background:{'#1a1215' if full else '#121721'};border-left:4px solid {acc};">
+          <div style="min-width:210px;"><div style="color:#fff;font-weight:800;font-size:1.05rem;">{r['name']}</div>
+          <div style="color:{acc};font-size:.68rem;letter-spacing:1px;">{r['Category_Custom'].upper()} &nbsp;\u00b7&nbsp; {r['Date_Parsed'].strftime('%d %b %Y')}</div></div>
+          <div class="fm-group">
+            <div class="fm"><div class="fm-val">{r['distance_km']:.2f}</div><div class="fm-lbl">km</div></div>
+            <div class="fm"><div class="fm-val">{r['moving_time_hms']}</div><div class="fm-lbl">time</div></div>
+            <div class="fm"><div class="fm-val">{r['pace_str']}</div><div class="fm-lbl">/km</div></div>
+            <div class="fm"><div class="fm-val">{cad}</div><div class="fm-lbl">spm</div></div>
+            <div class="fm"><div class="fm-val">{hr}</div><div class="fm-lbl">hr</div></div>
+          </div></div>""", unsafe_allow_html=True)
