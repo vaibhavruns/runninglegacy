@@ -214,13 +214,10 @@ with t_over:
 
     # blurb (editable) \u2014 personal narrative
     st.markdown("""<div class="blurb" style="font-style:normal;">
-      <div style="font-size:1.3rem;color:#ccff00;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;">Welcome to my running journey</div>
-      <p style="margin:0 0 13px;">In 2022, I could barely run 2 kilometres. What began as a simple public commitment\u2014to run <b>1,000 kilometres in a year</b>\u2014slowly became a habit that reshaped my weekends, my travels, and the way I think about consistency.</p>
-      <p style="margin:0 0 13px;">Since then, I have crossed the 1,000-kilometre mark <b>every year</b>. Running has taken me through thousands of kilometres, races across India, new cities, and countless ordinary mornings that gradually built confidence one run at a time. Along the way, I discovered that the most meaningful part of running was never the medals, personal bests, or race results. It was the quiet satisfaction of showing up, the friendships built on shared miles, and the joy of exploring the world on foot.</p>
-      <p style="margin:0 0 13px;">Four years of consistency came together at the finish line of the <b>2025 Berlin Marathon</b>. Crossing that line wasn't a dramatic breakthrough\u2014it was the culmination of thousands of ordinary runs, and the moment I could finally call myself a <b>marathoner</b>.</p>
-      <p style="margin:0 0 13px;">This website is my running archive\u2014a collection of runs, races, milestones, memories, and lessons gathered one step at a time. The data shown here represents only a part of the journey. Behind every data point are the ordinary runs, early mornings, friendships, and lessons that ultimately came together at the finish line of the 2025 Berlin Marathon, where I became a marathoner.</p>
-      <p style="margin:0 0 13px;">Progress rarely arrives in dramatic moments. More often, it is built through consistency, patience, and the simple decision to lace up and head out the door.</p>
-      <p style="margin:0;">Thank you for being part of the journey. \U0001F3C3\u200D\u2642\uFE0F</p>
+      <div style="font-size:1.2rem;color:#ccff00;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Welcome to my running journey</div>
+      <p style="margin:0 0 11px;">In 2022 I could barely run 2 km. A public promise\u2014to run <b>1,000 km in a year</b>\u2014turned into a habit, and I've crossed 1,000 km <b>every year since</b>.</p>
+      <p style="margin:0 0 11px;">The medals and PBs were never the point\u2014it was showing up: the friendships, the new cities, the ordinary mornings. Four years of that quietly added up at the finish of the <b>2025 Berlin Marathon</b>, where I became a marathoner.</p>
+      <p style="margin:0;">This is my running archive. Progress isn't dramatic\u2014it's lacing up and heading out the door. Thanks for being part of it. \U0001F3C3\u200D\u2642\uFE0F</p>
     </div>""", unsafe_allow_html=True)
 
     # running timeline (data-derived stats)
