@@ -73,6 +73,10 @@ def SHOW(fig, height=320):
 CHART = dict(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
              margin=dict(l=10,r=10,t=20,b=10), font=dict(family="Inter, sans-serif", size=12, color="#94a3b8"),
              showlegend=False)
+DISCLAIMER = ("Shows only runs recorded on Garmin &amp; Strava \u2014 actual mileage is higher. "
+              "I\u2019ve run <b style='color:#94a3b8;'>1,000+ km every year since 2022</b>.")
+def disclaimer():
+    st.markdown(f"<p style='color:#64748b;font-size:.72rem;font-style:italic;letter-spacing:0;text-transform:none;margin:-4px 0 18px;'>{DISCLAIMER}</p>", unsafe_allow_html=True)
 def grid(fig):
     fig.update_layout(**CHART)
     fig.update_xaxes(showgrid=False, title_text="")
@@ -197,7 +201,7 @@ if tick:
     st.markdown(f"""<div class="ticker-wrap"><marquee behavior="scroll" direction="left" scrollamount="6"
       style="color:#ccff00;font-weight:800;font-family:monospace;font-size:1.05rem;">ALL-TIME RECORD BENCHMARKS &nbsp;&nbsp; // &nbsp;&nbsp; {" &nbsp;&nbsp; // &nbsp;&nbsp; ".join(tick)}</marquee></div>""", unsafe_allow_html=True)
 
-t_over, t_data, t_rec, t_log = st.tabs(["Overview", "Data", "Race Registry", "Activity Log"])
+t_over, t_rec, t_data, t_log = st.tabs(["Overview", "Race Registry", "Data", "Activity Log"])
 
 # ============================================================ OVERVIEW
 with t_over:
@@ -211,6 +215,7 @@ with t_over:
       <div class="kpi-card"><div class="kpi-value">{elev:,.0f}<span style='font-size:.9rem;'> M</span></div><div class="kpi-label">// CLIMBED</div></div>
       <div class="kpi-card"><div class="kpi-value">{apl}</div><div class="kpi-label">// AVG PACE</div></div>
     </div>""", unsafe_allow_html=True)
+    disclaimer()
 
     # blurb (editable) \u2014 personal narrative
     st.markdown("""<div class="blurb" style="font-style:normal;">
@@ -252,6 +257,7 @@ with t_over:
 
 # ============================================================ DATA
 with t_data:
+    disclaimer()
     def c_weekly():
         st.markdown('<div class="chart-container-box"><h3>Weekly Mileage</h3>', unsafe_allow_html=True)
         wk=runs_f.set_index("Date_Parsed")["distance_km"].resample("W-MON").sum().reset_index()
@@ -390,6 +396,7 @@ with t_data:
 
 # ============================================================ RACE REGISTRY
 with t_rec:
+    disclaimer()
     st.markdown("<div class='section-h'>PERSONAL BESTS</div>", unsafe_allow_html=True)
     cards=""
     for k,lo,hi in PB_BANDS:
@@ -399,41 +406,22 @@ with t_rec:
           <div class="pb-meta">{r['pace_str']} /km<br>{r['Date_Parsed'].strftime('%d %b %Y')}</div></div>"""
     st.markdown(f'<div class="pb-grid">{cards}</div>', unsafe_allow_html=True)
 
+    # distance milestones: counts of FM / half-or-more + longest run
+    n_full = int((runs_all["distance_km"] >= 42.0).sum())
+    n_half = int(((runs_all["distance_km"] >= 21.0) & (runs_all["distance_km"] < 42.0)).sum())
+    lr = runs_all.loc[runs_all["distance_km"].idxmax()]
+    best_full = best_effort(runs_all, 41.9, 43.5)
+    best_half = best_effort(runs_all, 20.9, 21.6)
+    full_sub = f"best {best_full['moving_time_hms']}" if best_full is not None else "42 km +"
+    half_sub = f"best {best_half['moving_time_hms']}" if best_half is not None else "21\u201342 km"
+    st.markdown(f"""<div class="section-h">DISTANCE MILESTONES</div>
+    <div class="kpi-container">
+      <div class="kpi-card accent"><div class="kpi-value">{n_full}</div><div class="kpi-label">// FULL MARATHONS</div><div class="kpi-sub">42 km \u00b7 {full_sub}</div></div>
+      <div class="kpi-card accent"><div class="kpi-value">{n_half}</div><div class="kpi-label">// HALF MARATHON OR LONGER</div><div class="kpi-sub">21\u201342 km \u00b7 {half_sub}</div></div>
+      <div class="kpi-card"><div class="kpi-value">{lr['distance_km']:.1f}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LONGEST RUN</div><div class="kpi-sub">{lr['Date_Parsed'].strftime('%d %b %Y')}</div></div>
+      <div class="kpi-card"><div class="kpi-value">{int(runs_all['distance_km'].sum()):,}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LIFETIME DISTANCE</div><div class="kpi-sub">recorded</div></div>
+    </div>""", unsafe_allow_html=True)
+
     st.markdown('<div class="chart-container-box"><h3>Official Race Registry</h3>', unsafe_allow_html=True)
     pr_dates={best_effort(runs_all,lo,hi)["Date_Parsed"].date() for _,lo,hi in PB_BANDS if best_effort(runs_all,lo,hi) is not None}
-    races=f[f["Race_Tag"].notna()].copy(); races["_d"]=races["Date_Parsed"].dt.date
-    races=races.sort_values("distance_km",ascending=False).drop_duplicates("_d").sort_values("Date_Parsed",ascending=False)
-    if races.empty: st.markdown('<p style="color:#64748b;">No registered races in this filter.</p>', unsafe_allow_html=True)
-    for _,r in races.iterrows():
-        full=r["Category_Custom"]=="Full Marathon"; acc=RED if full else LIME
-        chips=""
-        if r["Date_Parsed"].date() in pr_dates: chips+="<span style='background:#ccff00;color:#0b0e14;font-family:monospace;font-size:.6rem;font-weight:900;padding:2px 7px;border-radius:3px;letter-spacing:1px;margin-right:6px;'>PR</span>"
-        if r["Race_Note"]: chips+=f"<span style='color:{acc};font-family:monospace;font-size:.68rem;font-weight:800;'>{r['Race_Note']}</span>"
-        note=f"<div style='margin-top:4px;'>{chips}</div>" if chips else ""
-        st.markdown(f"""<div class="race-row" style="background:{'#1a1215' if full else '#161d2a'};border-left:4px solid {acc};">
-          <div><div style="color:#fff;font-weight:800;font-size:1.08rem;">{r['Race_Tag']}</div>
-          <div style="color:#64748b;font-size:.72rem;font-family:monospace;">{r['Date_Parsed'].strftime('%B %d, %Y')} &nbsp;\u00b7&nbsp; BIB {r['Race_Bib']}</div>{note}</div>
-          <div class="fm-group">
-            <div class="fm"><div class="fm-val">{r['distance_km']:.2f}</div><div class="fm-lbl">km</div></div>
-            <div class="fm"><div class="fm-val">{r['moving_time_hms']}</div><div class="fm-lbl">time</div></div>
-            <div class="fm"><div class="fm-val">{r['pace_str']}</div><div class="fm-lbl">/km</div></div>
-          </div></div>""", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ============================================================ ACTIVITY LOG
-with t_log:
-    st.markdown("<div class='section-h'>ACTIVITY LOG</div>", unsafe_allow_html=True)
-    for _,r in f.sort_values("Date_Parsed",ascending=False).head(60).iterrows():
-        full=r["Category_Custom"]=="Full Marathon"; acc=RED if full else CYAN
-        cad=f"{r['cadence_spm']:.0f}" if pd.notna(r["cadence_spm"]) else "--"
-        hr=f"{r['avg_hr']:.0f}" if pd.notna(r.get("avg_hr")) else "--"
-        st.markdown(f"""<div class="flashcard-row-base" style="background:{'#1a1215' if full else '#121721'};border-left:4px solid {acc};">
-          <div style="min-width:210px;"><div style="color:#fff;font-weight:800;font-size:1.05rem;">{r['name']}</div>
-          <div style="color:{acc};font-size:.68rem;letter-spacing:1px;">{r['Category_Custom'].upper()} &nbsp;\u00b7&nbsp; {r['Date_Parsed'].strftime('%d %b %Y')}</div></div>
-          <div class="fm-group">
-            <div class="fm"><div class="fm-val">{r['distance_km']:.2f}</div><div class="fm-lbl">km</div></div>
-            <div class="fm"><div class="fm-val">{r['moving_time_hms']}</div><div class="fm-lbl">time</div></div>
-            <div class="fm"><div class="fm-val">{r['pace_str']}</div><div class="fm-lbl">/km</div></div>
-            <div class="fm"><div class="fm-val">{cad}</div><div class="fm-lbl">spm</div></div>
-            <div class="fm"><div class="fm-val">{hr}</div><div class="fm-lbl">hr</div></div>
-          </div></div>""", unsafe_allow_html=True)
+    races=f[f["Race_Tag"].notna()].copy(); races["_d"]=races["Date_Parsed"].
