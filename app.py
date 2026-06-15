@@ -105,8 +105,10 @@ def load_data():
     _src=df["datetime"] if "datetime" in df.columns else df["date"]
     dt=pd.to_datetime(_src, errors="coerce")
     if dt.isna().mean()>0.3: dt=pd.to_datetime(_src, errors="coerce", dayfirst=True)
-    dt=dt.fillna(pd.to_datetime(df["date"], errors="coerce", dayfirst=True))
-    df["Date_Parsed"]=dt
+    dcol=pd.to_datetime(df["date"], errors="coerce")
+    if dcol.isna().mean()>0.3: dcol=pd.to_datetime(df["date"], errors="coerce", dayfirst=True)
+    df["Date_Parsed"]=dt.fillna(dcol)
+    df=df[df["Date_Parsed"].notna()].copy()   # never let an unparseable date crash the app
     for c in ["distance_km","moving_time_s","pace_min_per_km","cadence_spm","relative_effort",
               "fatigue_atl","fitness_ctl","form","elevation_gain_m","calories","kudos","hour"]:
         if c in df.columns: df[c]=pd.to_numeric(df[c],errors="coerce")
@@ -197,7 +199,9 @@ runs_f=f[f["sport_type"]=="Run"].copy(); runs_all=df[df["sport_type"]=="Run"].co
 tick=[]; labmap={"5K":"5K","10K":"10K","HALF":"HALF MARATHON","FULL":"FULL MARATHON"}
 for k,lo,hi in PB_BANDS:
     r=best_effort(runs_all,lo,hi)
-    if r is not None: tick.append(f"PR {labmap[k]}: {r['moving_time_hms']} @ {r['pace_str']}/KM ({r['Date_Parsed'].strftime('%b %Y')})")
+    if r is not None:
+        _ds=r['Date_Parsed'].strftime('%b %Y') if pd.notna(r['Date_Parsed']) else ''
+        tick.append(f"PR {labmap[k]}: {r['moving_time_hms']} @ {r['pace_str']}/KM ({_ds})")
 if tick:
     st.markdown(f"""<div class="ticker-wrap"><marquee behavior="scroll" direction="left" scrollamount="6"
       style="color:#ccff00;font-weight:800;font-family:monospace;font-size:1.05rem;">ALL-TIME RECORD BENCHMARKS &nbsp;&nbsp; // &nbsp;&nbsp; {" &nbsp;&nbsp; // &nbsp;&nbsp; ".join(tick)}</marquee></div>""", unsafe_allow_html=True)
