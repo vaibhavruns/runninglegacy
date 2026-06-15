@@ -520,9 +520,15 @@ with t_data:
         "Dynamics \u00b7 Stride Length":"Average distance covered per step \u2014 tends to grow as fitness and speed improve.",
         "Dynamics \u00b7 Vertical Ratio":"Vertical bounce as a percentage of stride length \u2014 the single best running-economy number. Lower is better.",
     }
-    pick=st.selectbox("SELECT CHART",list(CHARTS.keys()))
-    CHARTS[pick]()
-    st.markdown(f"<p style='color:#64748b;font-size:.82rem;line-height:1.6;letter-spacing:0;text-transform:none;margin-top:2px;'><b style='color:#94a3b8;'>What this shows \u2014 </b>{CAPTIONS.get(pick,'')}</p>", unsafe_allow_html=True)
+    cats=[]
+    for k in CHARTS:
+        c=k.split(" \u00b7 ")[0]
+        if c not in cats: cats.append(c)
+    cat=st.selectbox("SELECT CATEGORY", cats)
+    for k in CHARTS:
+        if k.split(" \u00b7 ")[0]!=cat: continue
+        CHARTS[k]()
+        st.markdown(f"<p style='color:#64748b;font-size:.82rem;line-height:1.6;letter-spacing:0;text-transform:none;margin:2px 0 22px;'><b style='color:#94a3b8;'>What this shows \u2014 </b>{CAPTIONS.get(k,'')}</p>", unsafe_allow_html=True)
 
 # ===== ACTIVITY LOG =====
 with t_log:
