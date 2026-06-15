@@ -147,10 +147,11 @@ def load_data():
     return df
 
 @st.cache_data(show_spinner=False)
-def load_daily():
+def load_daily(_sig=0):
     p=next((x for x in ["daily_metrics.csv","data/daily_metrics.csv"] if os.path.exists(x)),None)
     if not p: return None
-    d=pd.read_csv(p); d["date"]=pd.to_datetime(d["date"]); d["year"]=d["date"].dt.year; return d
+    d=pd.read_csv(p,encoding="utf-8-sig"); d.columns=[c.strip() for c in d.columns]
+    d["date"]=pd.to_datetime(d["date"],errors="coerce"); d["year"]=d["date"].dt.year; return d
 @st.cache_data(show_spinner=False)
 def load_profile():
     p=next((x for x in ["athlete_profile.csv","data/athlete_profile.csv"] if os.path.exists(x)),None)
@@ -165,7 +166,7 @@ def best_effort(runs,lo,hi):
     return None if b.empty else b.loc[b["moving_time_s"].idxmin()]
 PB_BANDS=[("5K",4.9,5.3),("10K",9.7,10.6),("HALF",20.9,21.6),("FULL",41.9,43.5)]
 
-df=load_data(); daily=load_daily(); PROFILE=load_profile(); ZONES=load_zones()
+df=load_data(); daily=load_daily(_sig=(os.path.getmtime("daily_metrics.csv") if os.path.exists("daily_metrics.csv") else 0)); PROFILE=load_profile(); ZONES=load_zones()
 HRMAX=int(PROFILE.get("max_hr")) if PROFILE.get("max_hr") else (int(df["max_hr"].max()) if (df is not None and "max_hr" in df.columns and df["max_hr"].notna().any()) else 190)
 RHR_BASE=int(PROFILE.get("resting_hr")) if PROFILE.get("resting_hr") else None
 if ZONES is not None and "hr_floor" in ZONES.columns:
@@ -277,6 +278,10 @@ with t_rec:
 # ===== DATA =====
 with t_data:
     disclaimer()
+    _ds = "daily_metrics: " + (f"loaded {len(daily)} rows" if daily is not None else "NOT FOUND")
+    _ds += " \u00b7 garmin power: " + ("yes" if ("avg_power" in df.columns and df["avg_power"].notna().any()) else "no")
+    _ds += " \u00b7 profile: " + ("yes" if PROFILE else "no") + " \u00b7 zones: " + ("yes" if ZONES is not None else "no")
+    st.caption(_ds)
     def c_map():
         st.markdown('<div class="chart-container-box"><h3>Where I\'ve Run</h3>', unsafe_allow_html=True)
         r=runs_all.copy(); r["loc"]=r["location"].where(r["location"].notna() & r["location"].astype(str).ne("nan"),"Mumbai")
