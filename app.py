@@ -292,12 +292,12 @@ with t_data:
         r["loc"]=r["loc"].apply(lambda c: c if c in CITY_GEO else "Mumbai")
         cv=r.groupby("loc").agg(runs=("distance_km","size"),km=("distance_km","sum")).reset_index()
         cv["lat"]=cv["loc"].map(lambda c: CITY_GEO[c][0]); cv["lon"]=cv["loc"].map(lambda c: CITY_GEO[c][1])
-        cv["size"]=11+(cv["km"]**0.5)*1.5; cv["label"]=cv.apply(lambda x:f"{x['loc']}  \u2022  {int(x['runs'])} runs \u2022 {int(x['km'])} km",axis=1)
+        cv["label"]=cv.apply(lambda x:f"{x['loc']}  \u2022  {int(x['runs'])} runs \u2022 {int(x['km'])} km",axis=1)
         fig=go.Figure(go.Scattergeo(lon=cv["lon"],lat=cv["lat"],text=cv["label"],hoverinfo="text",mode="markers",
-            marker=dict(size=cv["size"],color=LIME,opacity=.85,line=dict(width=1,color="#0b0e14"))))
-        fig.update_geos(projection_type="natural earth",showland=True,landcolor="#121721",showcountries=True,countrycolor="#1e293b",
-            showocean=True,oceancolor="#0b0e14",showcoastlines=True,coastlinecolor="#1e293b",bgcolor="rgba(0,0,0,0)",lakecolor="#0b0e14",
-            lataxis_range=[8,56],lonaxis_range=[8,95])
+            marker=dict(size=9,color=LIME,opacity=.95,symbol="circle",line=dict(width=1.6,color="#0b0e14"))))
+        fig.update_geos(projection_type="natural earth",showland=True,landcolor="#1a2230",showcountries=True,countrycolor="#5a6b85",
+            countrywidth=0.8,showocean=True,oceancolor="#0b0e14",showcoastlines=True,coastlinecolor="#5a6b85",coastlinewidth=0.8,
+            bgcolor="rgba(0,0,0,0)",lakecolor="#0b0e14",framecolor="#2b3850",lataxis_range=[8,56],lonaxis_range=[8,95])
         fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",margin=dict(l=0,r=0,t=0,b=0),height=440)
         st.plotly_chart(fig,use_container_width=True,config=STATIC)
         chips="".join(f"<span style='display:inline-block;background:#161d2a;border:1px solid #1e293b;border-radius:20px;padding:5px 13px;margin:4px 6px 0 0;font-size:.74rem;'><b style='color:#ccff00;'>{x['loc']}</b> <span style='color:#64748b;font-family:monospace;'>{int(x['km'])} km</span></span>" for _,x in cv.sort_values('km',ascending=False).iterrows())
