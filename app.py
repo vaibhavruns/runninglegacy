@@ -297,7 +297,7 @@ with t_data:
             marker=dict(size=9,color=LIME,opacity=.95,symbol="circle",line=dict(width=1.6,color="#0b0e14"))))
         fig.update_geos(projection_type="natural earth",showland=True,landcolor="#1a2230",showcountries=True,countrycolor="#5a6b85",
             countrywidth=0.8,showocean=True,oceancolor="#0b0e14",showcoastlines=True,coastlinecolor="#5a6b85",coastlinewidth=0.8,
-            bgcolor="rgba(0,0,0,0)",lakecolor="#0b0e14",framecolor="#2b3850",lataxis_range=[8,56],lonaxis_range=[8,95])
+            bgcolor="rgba(0,0,0,0)",lakecolor="#0b0e14",framecolor="#2b3850",lataxis_range=[6,60],lonaxis_range=[5,98])
         fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",margin=dict(l=0,r=0,t=0,b=0),height=440)
         st.plotly_chart(fig,use_container_width=True,config=STATIC)
         chips="".join(f"<span style='display:inline-block;background:#161d2a;border:1px solid #1e293b;border-radius:20px;padding:5px 13px;margin:4px 6px 0 0;font-size:.74rem;'><b style='color:#ccff00;'>{x['loc']}</b> <span style='color:#64748b;font-family:monospace;'>{int(x['km'])} km</span></span>" for _,x in cv.sort_values('km',ascending=False).iterrows())
