@@ -15,7 +15,7 @@ CADENCE_TARGET=174
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 :root{
   --bg:#0a0d13; --surface:#10151e; --line:#1c2634; --line-hi:#2a3647;
   --ink:#f3f6fa; --ink-2:#9aa7b8; --muted:#5f6b7e;
@@ -26,13 +26,13 @@ st.markdown("""
 html,body,[data-testid="stMarkdownContainer"] p,p,label,.stSelectbox div{ color:var(--ink-2)!important; }
 .block-container{ padding-top:2.4rem!important; max-width:1180px; }
 
-h1,h2,h3,h4,h5,h6{ font-family:'Archivo',system-ui,sans-serif!important; color:var(--ink)!important; }
+h1,h2,h3,h4,h5,h6{ font-family:'Saira',system-ui,sans-serif!important; color:var(--ink)!important; }
 h1{ font-weight:900!important; text-transform:uppercase!important; letter-spacing:-.5px!important; line-height:.98!important; }
 h2,h3{ font-weight:700!important; letter-spacing:.2px!important; text-transform:none!important; }
 strong{ color:var(--ink)!important; }
 
 div[data-testid="stTabs"] div[role="tablist"]{ gap:2px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
-div[data-testid="stTabs"] button{ font-family:'Archivo',sans-serif!important; font-size:.9rem!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:1px!important; color:var(--muted)!important; padding:13px 20px!important; border-bottom:2px solid transparent!important; transition:color .18s ease,border-color .18s ease; }
+div[data-testid="stTabs"] button{ font-family:'Saira',sans-serif!important; font-size:.9rem!important; font-weight:700!important; text-transform:uppercase!important; letter-spacing:1px!important; color:var(--muted)!important; padding:13px 20px!important; border-bottom:2px solid transparent!important; transition:color .18s ease,border-color .18s ease; }
 div[data-testid="stTabs"] button:hover{ color:var(--ink-2)!important; }
 div[data-testid="stTabs"] button[aria-selected="true"]{ color:var(--accent)!important; border-bottom:2px solid var(--accent)!important; background:transparent!important; }
 
@@ -51,14 +51,14 @@ div[data-testid="stTabs"] button[aria-selected="true"]{ color:var(--accent)!impo
 .chart-container-box:hover{ border-color:var(--line-hi)!important; }
 .chart-container-box h3{ font-size:1.12rem!important; margin:0 0 4px!important; }
 
-.section-h{ font-family:'Archivo',sans-serif; color:var(--ink); font-weight:800; letter-spacing:.3px; font-size:1.35rem; margin:10px 0 16px; }
+.section-h{ font-family:'Saira',sans-serif; color:var(--ink); font-weight:800; letter-spacing:.3px; font-size:1.35rem; margin:10px 0 16px; }
 
 .timeline{ border-left:1px solid var(--line); margin:6px 0 24px 10px; padding-left:26px; }
 .tl-item{ position:relative; margin-bottom:24px; }
 .tl-item:before{ content:''; position:absolute; left:-32px; top:4px; width:11px; height:11px; border-radius:50%; background:var(--muted); }
 .tl-item.full:before{ background:var(--accent); box-shadow:0 0 0 4px rgba(204,255,0,.12); }
 .tl-year{ color:var(--muted); font-family:'JetBrains Mono',ui-monospace,monospace; font-weight:700; font-size:.74rem; letter-spacing:1.5px; }
-.tl-title{ font-family:'Archivo',sans-serif; color:var(--ink); font-weight:700; font-size:1.16rem; margin:2px 0 4px; }
+.tl-title{ font-family:'Saira',sans-serif; color:var(--ink); font-weight:700; font-size:1.16rem; margin:2px 0 4px; }
 .tl-desc{ color:var(--ink-2); font-size:.86rem; line-height:1.55; }
 
 .blurb{ background:var(--surface); border-left:3px solid var(--accent); border-radius:var(--r); padding:22px 24px; margin:4px 0 26px; line-height:1.7; color:#cbd5e1; }
@@ -107,8 +107,9 @@ def grid(fig):
     fig.update_layout(**CHART)
     fig.update_xaxes(showgrid=False,title_text="",tickfont=dict(color="#5f6b7e"),linecolor="rgba(28,38,52,.8)")
     fig.update_yaxes(showgrid=True,gridcolor="rgba(28,38,52,.55)",zeroline=False,title_text="",tickfont=dict(color="#5f6b7e")); return fig
-DISCLAIMER=("Shows only runs recorded on Garmin &amp; Strava \u2014 actual mileage is higher. "
-            "I\u2019ve run <b style='color:#94a3b8;'>1,000+ km every year since 2022</b>.")
+DISCLAIMER=("Yearly volume &amp; the monthly heatmap blend a <b style='color:#94a3b8;'>Nike Run Club archive (2021\u20132023)</b> "
+            "with <b style='color:#94a3b8;'>per-run Strava &amp; Garmin (2024+)</b> \u2014 never summed for the same period. "
+            "Detailed per-run charts use Strava/Garmin only, so they thin out before 2024.")
 def disclaimer():
     st.markdown(f"<p style='color:#64748b;font-size:.72rem;font-style:italic;letter-spacing:0;text-transform:none;margin:-4px 0 18px;'>{DISCLAIMER}</p>", unsafe_allow_html=True)
 
@@ -225,13 +226,35 @@ def load_profile():
 def load_zones():
     p=next((x for x in ["zones.csv","data/zones.csv"] if os.path.exists(x)),None)
     return pd.read_csv(p) if p else None
+def load_nrc():
+    # Nike Run Club monthly archive (2021-2023). Kept SEPARATE from the Strava
+    # activities.csv spine - monthly summaries only, never merged per-run.
+    p=next((x for x in ["nrc_monthly.csv","data/nrc_monthly.csv"] if os.path.exists(x)),None)
+    if not p: return None
+    n=pd.read_csv(p); n["year"]=n["year"].astype(int)
+    n["mn"]=pd.to_datetime(n["month_start"]).dt.month
+    return n
 
 def best_effort(runs,lo,hi):
     b=runs[(runs["distance_km"]>=lo)&(runs["distance_km"]<=hi)&(runs["moving_time_s"]>0)]
     return None if b.empty else b.loc[b["moving_time_s"].idxmin()]
 PB_BANDS=[("5K",4.9,5.3),("10K",9.7,10.6),("HALF",20.9,21.6),("FULL",41.9,43.5)]
 
-df=load_data(); daily=load_daily(_sig=(os.path.getmtime("daily_metrics.csv") if os.path.exists("daily_metrics.csv") else 0)); PROFILE=load_profile(); ZONES=load_zones()
+df=load_data(); daily=load_daily(_sig=(os.path.getmtime("daily_metrics.csv") if os.path.exists("daily_metrics.csv") else 0)); PROFILE=load_profile(); ZONES=load_zones(); NRC=load_nrc()
+NRC_CUTOFF=2024  # NRC monthly archive authoritative before this year; Strava per-run from this year on
+def annual_volume(runs):
+    # Blended TRUE yearly volume: NRC archive for pre-2024, Strava per-run for 2024+.
+    # Each year is sourced from exactly one layer, so the two are never double-counted.
+    sv=runs.groupby("year")["distance_km"].sum(); svn=runs.groupby("year").size()
+    years=set(int(y) for y in sv.index)
+    if NRC is not None: years|=set(int(y) for y in NRC["year"].unique())
+    rows=[]
+    for y in sorted(years):
+        if y<NRC_CUTOFF and NRC is not None and (NRC["year"]==y).any():
+            sub=NRC[NRC["year"]==y]; rows.append({"year":y,"km":float(sub["total_km"].sum()),"runs":int(sub["num_runs"].sum()),"source":"NRC"})
+        else:
+            rows.append({"year":y,"km":float(sv.get(y,0.0)),"runs":int(svn.get(y,0)),"source":"Strava"})
+    return pd.DataFrame(rows)
 HRMAX=int(PROFILE.get("max_hr")) if PROFILE.get("max_hr") else (int(df["max_hr"].max()) if (df is not None and "max_hr" in df.columns and df["max_hr"].notna().any()) else 190)
 RHR_BASE=int(PROFILE.get("resting_hr")) if PROFILE.get("resting_hr") else None
 if ZONES is not None and "hr_floor" in ZONES.columns:
@@ -285,7 +308,6 @@ with t_over:
       <div class="kpi-card"><div class="kpi-value">{elev:,.0f}<span style='font-size:.9rem;'> M</span></div><div class="kpi-label">// CLIMBED</div></div>
       <div class="kpi-card"><div class="kpi-value">{apl}</div><div class="kpi-label">// AVG PACE</div></div>
     </div>""", unsafe_allow_html=True)
-    disclaimer()
     st.markdown("""<div class="blurb">
       <div style="font-size:1.2rem;color:#ccff00;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Welcome to my running journey</div>
       <p style="margin:0 0 11px;">In 2022 I could barely run 2 km. A public promise\u2014to run <b>1,000 km in a year</b>\u2014turned into a habit, and I've crossed 1,000 km <b>every year since</b>.</p>
@@ -309,7 +331,6 @@ with t_over:
 
 # ===== RACE REGISTRY =====
 with t_rec:
-    disclaimer()
     st.markdown("<div class='section-h'>PERSONAL BESTS</div>", unsafe_allow_html=True)
     cards=""
     for k,lo,hi in PB_BANDS:
@@ -324,7 +345,7 @@ with t_rec:
       <div class="kpi-card accent"><div class="kpi-value">{n_full}</div><div class="kpi-label">// FULL MARATHONS</div><div class="kpi-sub">42 km \u00b7 {fs}</div></div>
       <div class="kpi-card accent"><div class="kpi-value">{n_half}</div><div class="kpi-label">// HALF MARATHON OR LONGER</div><div class="kpi-sub">21\u201342 km \u00b7 {hs}</div></div>
       <div class="kpi-card"><div class="kpi-value">{lr['distance_km']:.1f}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LONGEST RUN</div><div class="kpi-sub">{lr['Date_Parsed'].strftime('%d %b %Y')}</div></div>
-      <div class="kpi-card"><div class="kpi-value">{int(runs_all['distance_km'].sum()):,}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LIFETIME DISTANCE</div><div class="kpi-sub">recorded</div></div>
+      <div class="kpi-card"><div class="kpi-value">{int(annual_volume(runs_all)['km'].sum()):,}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LIFETIME DISTANCE</div><div class="kpi-sub">NRC + Strava</div></div>
     </div>""", unsafe_allow_html=True)
     st.markdown('<div class="chart-container-box"><h3>Official Race Registry</h3>', unsafe_allow_html=True)
     pr_dates={best_effort(runs_all,lo,hi)["Date_Parsed"].date() for _,lo,hi in PB_BANDS if best_effort(runs_all,lo,hi) is not None}
@@ -346,7 +367,6 @@ with t_rec:
 
 # ===== DATA =====
 with t_data:
-    disclaimer()
     _ds = "daily_metrics: " + (f"loaded {len(daily)} rows" if daily is not None else "NOT FOUND")
     _ds += " \u00b7 garmin power: " + ("yes" if ("avg_power" in df.columns and df["avg_power"].notna().any()) else "no")
     _ds += " \u00b7 profile: " + ("yes" if PROFILE else "no") + " \u00b7 zones: " + ("yes" if ZONES is not None else "no")
@@ -507,8 +527,16 @@ with t_data:
         fig=grid(fig); fig.update_layout(showlegend=True,legend=dict(orientation="h",y=1.15,font=dict(color=MUTE))); SHOW(fig,360); st.markdown("</div>",unsafe_allow_html=True)
     def c_yoy():
         st.markdown('<div class="chart-container-box"><h3>Volume By Year</h3>', unsafe_allow_html=True)
-        yoy=runs_f.groupby("year")["distance_km"].sum().reset_index(); yoy["year"]=yoy["year"].astype(str)
-        fig=px.bar(yoy,x="year",y="distance_km",text_auto=".0f",color="year",color_discrete_map=YEAR_COLORS); SHOW(grid(fig)); st.markdown("</div>",unsafe_allow_html=True)
+        av=annual_volume(runs_all)
+        if sel_year!="ALL TIME": av=av[av["year"]==int(sel_year)]
+        if av.empty: st.info("No volume data in this filter."); st.markdown("</div>",unsafe_allow_html=True); return
+        av["yr"]=av["year"].astype(str)
+        fig=px.bar(av,x="yr",y="km",text_auto=".0f",color="yr",color_discrete_map=YEAR_COLORS)
+        nrc_years=set(av[av["source"]=="NRC"]["yr"])
+        for tr in fig.data:
+            if tr.name in nrc_years: tr.marker.pattern=dict(shape="/",solidity=0.55,fgcolor="#0a0d13")
+        fig=grid(fig); fig.update_layout(showlegend=False); fig.update_yaxes(title_text="km"); fig.update_xaxes(title_text="")
+        SHOW(fig); st.markdown("</div>",unsafe_allow_html=True)
     def c_mix():
         st.markdown('<div class="chart-container-box"><h3>Distance Mix</h3>', unsafe_allow_html=True)
         fr=runs_f["Category_Custom"].value_counts().reset_index(); fr.columns=["Category_Custom","count"]
@@ -525,9 +553,15 @@ with t_data:
         fig=px.bar(hr,x="hour",y="runs"); fig.update_traces(marker_color=CYAN); SHOW(grid(fig)); st.markdown("</div>",unsafe_allow_html=True)
     def c_heat():
         st.markdown('<div class="chart-container-box"><h3>Monthly Volume Heatmap</h3>', unsafe_allow_html=True)
-        hm=runs_f.copy(); hm["mn"]=hm["Date_Parsed"].dt.month
-        piv=hm.pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum").fillna(0).reindex(columns=range(1,13),fill_value=0)
-        piv.columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        sv=runs_all.copy(); sv["mn"]=sv["Date_Parsed"].dt.month
+        piv=sv[sv["year"]>=NRC_CUTOFF].pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
+        if NRC is not None:
+            npv=NRC[NRC["year"]<NRC_CUTOFF].pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
+            piv=pd.concat([piv,npv])
+        piv=piv.groupby(level=0).sum().reindex(columns=range(1,13)).fillna(0).sort_index()
+        if sel_year!="ALL TIME": piv=piv[piv.index==int(sel_year)]
+        if piv.empty: st.info("No volume data in this filter."); st.markdown("</div>",unsafe_allow_html=True); return
+        piv.index=piv.index.astype(int); piv.columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
         fig=px.imshow(piv,text_auto=".0f",aspect="auto",color_continuous_scale=[[0,"#121721"],[.5,"#1e6b6b"],[1,LIME]])
         fig.update_layout(**{k:v for k,v in CHART.items() if k!="showlegend"}); fig.update_coloraxes(showscale=False); SHOW(fig,300); st.markdown("</div>",unsafe_allow_html=True)
     def c_hrtrend():
@@ -615,10 +649,10 @@ with t_data:
         "Performance \u00b7 Running Power":"Running power in watts per run \u2014 effort that's independent of pace, hills and wind. Steady or rising output at the same feel signals improving strength.",
         "Trends \u00b7 Weekly Mileage":"Total distance run each week. Training blocks, taper weeks and breaks all show up at a glance.",
         "Trends \u00b7 Pace Trend":"Average pace of every run over time (faster sits higher). The line is a 10-run rolling average showing the direction of your speed.",
-        "Trends \u00b7 Volume by Year":"Total kilometres per calendar year \u2014 the clearest view of your year-on-year growth.",
+        "Trends \u00b7 Volume by Year":"Total kilometres per calendar year. 2021\u20132023 come from your Nike Run Club archive (hatched bars); 2024 on is per-run Strava/Garmin. Strava badly under-counted the early years, so this is the truer growth curve \u2014 2022 was a ~770 km year, not the ~340 Strava alone showed.",
         "Trends \u00b7 Distance Mix":"How your runs split across distance buckets \u2014 how much is short and easy versus long efforts.",
         "Patterns \u00b7 Day of Week":"Which days you run most, by distance \u2014 your weekly rhythm and long-run day.",
-        "Patterns \u00b7 Monthly Heatmap":"Distance per month across the years; brighter cells are bigger months. Surfaces seasonality and your heaviest blocks.",
+        "Patterns \u00b7 Monthly Heatmap":"Distance per month across the years; brighter cells are bigger months. Pre-2024 months come from the Nike Run Club archive, 2024+ from Strava/Garmin \u2014 so your real 2022 base block finally shows.",
         "Heart \u00b7 Heart Rate Trend":"Average and max HR per run over time. The average trending down at similar paces is a clean sign of improving fitness.",
         "Heart \u00b7 Aerobic Efficiency":"Metres covered per heartbeat on 5 km+ runs. Rising = the same speed at lower cardiac cost \u2014 pure aerobic gains.",
         "Heart \u00b7 Pace vs Heart Rate":"Each run plotted as pace against heart rate, coloured by year. Points drifting down-and-left over the years mean faster at the same effort.",
