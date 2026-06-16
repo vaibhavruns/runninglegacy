@@ -303,12 +303,21 @@ with t_over:
     tot=runs_f["distance_km"].sum(); n=len(runs_f); tt=runs_f["moving_time_s"].sum()
     elev=runs_f["elevation_gain_m"].sum(); ap=runs_f["pace_min_per_km"].mean()
     apl=f"{int(ap)}:{int(round((ap-int(ap))*60)):02d}" if pd.notna(ap) else "--"
+    # NRC archive adds to Distance/Runs/Time for the selected year(s). It can only
+    # contribute when no distance-category filter is active (NRC has no per-run breakdown).
+    nrc_km=nrc_runs=nrc_time=0.0
+    if NRC is not None and sel_cat=="ALL CATEGORIES":
+        nsub=NRC if sel_year=="ALL TIME" else NRC[NRC["year"]==int(sel_year)]
+        nrc_km=float(nsub["total_km"].sum()); nrc_runs=int(nsub["num_runs"].sum()); nrc_time=float(nsub["total_time_s"].sum())
+    incl=nrc_runs>0; tot+=nrc_km; n+=nrc_runs; tt+=nrc_time
+    sub_blend="NRC + Strava" if incl else "runs only"; sub_b2=("NRC + Strava" if incl else ""); sub_so=("Strava only" if incl else "")
+    _sb=lambda t: f"<div class=\"kpi-sub\">{t}</div>" if t else ""
     st.markdown(f"""<div class="kpi-container">
-      <div class="kpi-card accent"><div class="kpi-value">{tot:,.0f}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// DISTANCE</div><div class="kpi-sub">runs only</div></div>
-      <div class="kpi-card"><div class="kpi-value">{n}</div><div class="kpi-label">// RUNS</div></div>
-      <div class="kpi-card"><div class="kpi-value">{hms_label(tt)}</div><div class="kpi-label">// TIME ON FEET</div></div>
-      <div class="kpi-card"><div class="kpi-value">{elev:,.0f}<span style='font-size:.9rem;'> M</span></div><div class="kpi-label">// CLIMBED</div></div>
-      <div class="kpi-card"><div class="kpi-value">{apl}</div><div class="kpi-label">// AVG PACE</div></div>
+      <div class="kpi-card accent"><div class="kpi-value">{tot:,.0f}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// DISTANCE</div><div class="kpi-sub">{sub_blend}</div></div>
+      <div class="kpi-card"><div class="kpi-value">{n}</div><div class="kpi-label">// RUNS</div>{_sb(sub_b2)}</div>
+      <div class="kpi-card"><div class="kpi-value">{hms_label(tt)}</div><div class="kpi-label">// TIME ON FEET</div>{_sb(sub_b2)}</div>
+      <div class="kpi-card"><div class="kpi-value">{elev:,.0f}<span style='font-size:.9rem;'> M</span></div><div class="kpi-label">// CLIMBED</div>{_sb(sub_so)}</div>
+      <div class="kpi-card"><div class="kpi-value">{apl}</div><div class="kpi-label">// AVG PACE</div>{_sb(sub_so)}</div>
     </div>""", unsafe_allow_html=True)
     st.markdown("""<div class="blurb">
       <div style="font-size:1.2rem;color:#ccff00;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Welcome to my running journey</div>
