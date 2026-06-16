@@ -78,6 +78,23 @@ h1,h2,h3,h4{ font-family:'Saira',sans-serif!important; color:#ECF0F4!important; 
   .statement{ font-size:2.6rem; } .herostat{ font-size:2.2rem; } .cd-num{ font-size:2.6rem; }
   .footer{ flex-direction:column; gap:6px; }
 }
+/* tabs */
+div[data-testid="stTabs"] div[role="tablist"]{ gap:2px; flex-wrap:wrap; border-bottom:.5px solid #1E232B; margin-bottom:16px; }
+div[data-testid="stTabs"] button{ font-family:'JetBrains Mono',monospace!important; font-size:.78rem!important; font-weight:500!important; letter-spacing:1.5px!important; text-transform:uppercase!important; color:#5A6472!important; padding:12px 18px!important; border-bottom:2px solid transparent!important; }
+div[data-testid="stTabs"] button:hover{ color:#9BA6B2!important; }
+div[data-testid="stTabs"] button[aria-selected="true"]{ color:#D6FB4F!important; border-bottom:2px solid #D6FB4F!important; }
+/* registry + log rows */
+.row{ background:#14171C; border:.5px solid #1E232B; border-radius:10px; padding:14px 18px; margin-bottom:10px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; }
+.row .nm{ font-family:'Saira',sans-serif; font-weight:600; font-size:1.05rem; color:#ECF0F4; min-width:200px; }
+.row .meta{ font-family:'JetBrains Mono',monospace; font-size:.68rem; color:#5A6472; margin-top:3px; letter-spacing:.5px; }
+.stats{ display:flex; gap:20px; }
+.stat{ text-align:center; min-width:46px; }
+.stat .n{ font-family:'JetBrains Mono',monospace; font-weight:700; color:#ECF0F4; font-size:.95rem; }
+.stat .u{ font-family:'JetBrains Mono',monospace; font-size:.56rem; color:#5A6472; letter-spacing:.5px; margin-top:2px; }
+.chip{ display:inline-block; font-family:'JetBrains Mono',monospace; font-size:.56rem; font-weight:700; padding:2px 7px; border-radius:4px; letter-spacing:1px; margin-right:6px; margin-top:4px; }
+.chip.pr{ background:#D6FB4F; color:#0B0D10; }
+@media (max-width:640px){ .row .nm{ min-width:100%; } .stats{ width:100%; justify-content:flex-start; gap:16px; } }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -255,294 +272,322 @@ years_running=pd.Timestamp.today().year-2021
 days_to=(RACE_DATE - pd.Timestamp.today().normalize()).days
 bf=best_effort(runs_all,41.9,43.5); marathon_pb=bf["moving_time_hms"] if bf is not None else "—"
 
-# ============================================================ NAV
 st.markdown("""
 <div class="nav">
   <span class="wordmark">STRIDE<b>.</b></span>
-  <span class="navlinks"><a href="#journey">Journey</a><a href="#build">Build</a><a href="#outlook">Outlook</a></span>
+  <span class="eyebrow" style="letter-spacing:2px;">A running record · since 2021</span>
 </div>""", unsafe_allow_html=True)
 
-# ============================================================ 1 · HERO
-hero_l,hero_r=st.columns([1.55,1])
-with hero_l:
-    st.markdown(f"""<div class="reveal">
-      <div class="eyebrow">A running record · since 2021</div>
-      <div class="statement">Five years.<br>On foot<span class="dot">.</span></div>
-      <div style="font-family:'Saira';font-size:1.05rem;color:#9BA6B2;margin:6px 0 22px;">Building toward the next start line.</div>
-      <div class="herostat">{life_km:,}<small> KM</small></div>
-      <div class="eyebrow" style="margin-top:8px;">Lifetime distance · {life_runs:,} runs</div>
+t_over,t_lab,t_reg,t_log=st.tabs(["Overview","Data Lab","Race Registry","Activity Log"])
+
+with t_over:
+    # ============================================================ 1 · HERO
+    hero_l,hero_r=st.columns([1.55,1])
+    with hero_l:
+        st.markdown(f"""<div class="reveal">
+          <div class="eyebrow">A running record · since 2021</div>
+          <div class="statement">Five years.<br>On foot<span class="dot">.</span></div>
+          <div style="font-family:'Saira';font-size:1.05rem;color:#9BA6B2;margin:6px 0 22px;">Building toward the next start line.</div>
+          <div class="herostat">{life_km:,}<small> KM</small></div>
+          <div class="eyebrow" style="margin-top:8px;">Lifetime distance · {life_runs:,} runs</div>
+        </div>""", unsafe_allow_html=True)
+    with hero_r:
+        st.markdown(f"""<div class="reveal cd-card">
+          <div class="eyebrow">Next race</div>
+          <div style="font-family:'Saira';font-weight:600;font-size:1.25rem;color:#ECF0F4;margin:4px 0 14px;">{RACE_NAME}</div>
+          <div class="cd-num">{days_to}</div>
+          <div class="eyebrow" style="margin-top:8px;">Days to go</div>
+          <div class="eyebrow" style="color:#9BA6B2;margin-top:10px;">{RACE_DATE.strftime('%d %B %Y').upper()}</div>
+        </div>""", unsafe_allow_html=True)
+
+    # ============================================================ 2 · THE JOURNEY
+    st.markdown("<div id='journey'></div>",unsafe_allow_html=True)
+    st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#D6FB4F;">The journey</div>
+      <h2>The long arc</h2></div><div class="note">2021 — present · NRC archive + Strava, combined</div>
+      <hr class="rule">""", unsafe_allow_html=True)
+
+    st.markdown(f"""<div class="cards">
+      <div class="card"><div class="v volt">{life_km:,}</div><div class="l">Lifetime km</div></div>
+      <div class="card"><div class="v">{life_runs:,}</div><div class="l">Total runs</div></div>
+      <div class="card"><div class="v">{n_full}</div><div class="l">Marathons run</div></div>
+      <div class="card"><div class="v">{years_running}</div><div class="l">Years running</div></div>
     </div>""", unsafe_allow_html=True)
-with hero_r:
-    st.markdown(f"""<div class="reveal cd-card">
-      <div class="eyebrow">Next race</div>
-      <div style="font-family:'Saira';font-weight:600;font-size:1.25rem;color:#ECF0F4;margin:4px 0 14px;">{RACE_NAME}</div>
-      <div class="cd-num">{days_to}</div>
-      <div class="eyebrow" style="margin-top:8px;">Days to go</div>
-      <div class="eyebrow" style="color:#9BA6B2;margin-top:10px;">{RACE_DATE.strftime('%d %B %Y').upper()}</div>
-    </div>""", unsafe_allow_html=True)
 
-# ============================================================ 2 · THE JOURNEY
-st.markdown("<div id='journey'></div>",unsafe_allow_html=True)
-st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#D6FB4F;">The journey</div>
-  <h2>The long arc</h2></div><div class="note">2021 — present · NRC archive + Strava, combined</div>
-  <hr class="rule">""", unsafe_allow_html=True)
+    # Volume by year — columns, additive, NRC years hatched, in-progress year hollow
+    chart_head("Volume by year", "Kilometres per year · NRC + Strava, additive · 2026 in progress")
+    avc=av.copy(); avc["yr"]=avc["year"].astype(str)
+    this_year=pd.Timestamp.today().year
+    bar_colors=["rgba(214,251,79,.35)" if int(y)==this_year else VOLT for y in avc["year"]]
+    fig=go.Figure()
+    fig.add_trace(go.Bar(x=avc["yr"],y=avc["km"],marker_color=bar_colors,
+        text=[f"{k:,.0f}" for k in avc["km"]],textposition="outside",
+        textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11),
+        hovertemplate="%{x}: %{y:,.0f} km<extra></extra>"))
+    fig=grid(fig); fig.update_yaxes(title_text="km"); fig.update_layout(margin=dict(l=8,r=12,t=28,b=8))
+    SHOW(fig,300)
 
-st.markdown(f"""<div class="cards">
-  <div class="card"><div class="v volt">{life_km:,}</div><div class="l">Lifetime km</div></div>
-  <div class="card"><div class="v">{life_runs:,}</div><div class="l">Total runs</div></div>
-  <div class="card"><div class="v">{n_full}</div><div class="l">Marathons run</div></div>
-  <div class="card"><div class="v">{years_running}</div><div class="l">Years running</div></div>
-</div>""", unsafe_allow_html=True)
+    # Milestones
+    chart_head("Milestones", "")
+    items=[
+        ("2021","First logged runs","Nike Run Club era — monthly archive","steel"),
+        ("2022",f"Base year — {int(av[av['year']==2022]['km'].sum()) if (av['year']==2022).any() else 0:,} km","Highest-volume year on record","volt"),
+        ("Sep 2025","Berlin Marathon",f"First full marathon — {marathon_pb}","signal"),
+        ("Early 2026","Knee injury","Managed conservatively, no surgery","signal"),
+        ("May 2026","Comeback","Cleared to run","volt"),
+        ("Now","Building for Sydney","Detailed training data from Jan 2024","now"),
+    ]
+    rows="".join(f"<div class='tl-item {c}'><div class='tl-yr'>{yr}</div><div class='tl-t'>{t}</div><div class='tl-s'>{s}</div></div>" for yr,t,s,c in items)
+    st.markdown(f"<div class='tl'>{rows}</div>", unsafe_allow_html=True)
 
-# Volume by year — columns, additive, NRC years hatched, in-progress year hollow
-chart_head("Volume by year", "Kilometres per year · NRC + Strava, additive · 2026 in progress")
-avc=av.copy(); avc["yr"]=avc["year"].astype(str)
-this_year=pd.Timestamp.today().year
-bar_colors=["rgba(214,251,79,.35)" if int(y)==this_year else VOLT for y in avc["year"]]
-fig=go.Figure()
-fig.add_trace(go.Bar(x=avc["yr"],y=avc["km"],marker_color=bar_colors,
-    text=[f"{k:,.0f}" for k in avc["km"]],textposition="outside",
-    textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11),
-    hovertemplate="%{x}: %{y:,.0f} km<extra></extra>"))
-fig=grid(fig); fig.update_yaxes(title_text="km"); fig.update_layout(margin=dict(l=8,r=12,t=28,b=8))
-SHOW(fig,300)
+    # Consistency map (full history)
+    chart_head("Where I've run", "Every recorded run placed at its city · bubble size = total distance")
+    r=runs_all.copy(); r["loc"]=r["location"].where(r["location"].notna() & r["location"].astype(str).ne("nan"),"Mumbai")
+    r["loc"]=r["loc"].apply(lambda c: c if c in CITY_GEO else "Mumbai")
+    cv=r.groupby("loc").agg(runs=("distance_km","size"),km=("distance_km","sum")).reset_index()
+    cv["lat"]=cv["loc"].map(lambda c: CITY_GEO[c][0]); cv["lon"]=cv["loc"].map(lambda c: CITY_GEO[c][1])
+    cv["sz"]=8+ (cv["km"]/cv["km"].max()*22)
+    cv["label"]=cv.apply(lambda x:f"{x['loc']} · {int(x['runs'])} runs · {int(x['km'])} km",axis=1)
+    mp=go.Figure(go.Scattergeo(lon=cv["lon"],lat=cv["lat"],text=cv["label"],hoverinfo="text",mode="markers",
+        marker=dict(size=cv["sz"],color=VOLT,opacity=.9,line=dict(width=1,color=INK))))
+    mp.update_geos(projection_type="natural earth",showland=True,landcolor="#11151B",showcountries=True,countrycolor="#2A313B",
+        countrywidth=0.5,showocean=True,oceancolor="#0B0D10",showcoastlines=True,coastlinecolor="#2A313B",coastlinewidth=0.5,
+        bgcolor="rgba(0,0,0,0)",lakecolor="#0B0D10",lataxis_range=[5,58],lonaxis_range=[-12,100])
+    mp.update_layout(paper_bgcolor="rgba(0,0,0,0)",margin=dict(l=0,r=0,t=0,b=0),height=420)
+    st.plotly_chart(mp,use_container_width=True,config=STATIC)
 
-# Milestones
-chart_head("Milestones", "")
-items=[
-    ("2021","First logged runs","Nike Run Club era — monthly archive","steel"),
-    ("2022",f"Base year — {int(av[av['year']==2022]['km'].sum()) if (av['year']==2022).any() else 0:,} km","Highest-volume year on record","volt"),
-    ("Sep 2025","Berlin Marathon",f"First full marathon — {marathon_pb}","signal"),
-    ("Early 2026","Knee injury","Managed conservatively, no surgery","signal"),
-    ("May 2026","Comeback","Cleared to run","volt"),
-    ("Now","Building for Sydney","Detailed training data from Jan 2024","now"),
-]
-rows="".join(f"<div class='tl-item {c}'><div class='tl-yr'>{yr}</div><div class='tl-t'>{t}</div><div class='tl-s'>{s}</div></div>" for yr,t,s,c in items)
-st.markdown(f"<div class='tl'>{rows}</div>", unsafe_allow_html=True)
+    # Monthly volume heatmap (consistency, full history, additive)
+    chart_head("Monthly consistency", "Distance per month · brighter = bigger month · NRC + Strava")
+    sv=runs_all.copy(); sv["mn"]=sv["Date_Parsed"].dt.month
+    piv=sv.pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
+    if NRC is not None:
+        npv=NRC.pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
+        piv=pd.concat([piv,npv])
+    piv=piv.groupby(level=0).sum().reindex(columns=range(1,13)).fillna(0).sort_index()
+    piv.index=piv.index.astype(int); piv.columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    hm=px.imshow(piv,text_auto=".0f",aspect="auto",color_continuous_scale=[[0,"#0F1318"],[.5,"#5a7a1e"],[1,VOLT]])
+    hm.update_layout(**{k:v for k,v in CHART.items() if k!="showlegend"}); hm.update_coloraxes(showscale=False)
+    hm.update_traces(textfont=dict(family="'JetBrains Mono', monospace",size=10))
+    SHOW(hm,300)
 
-# Consistency map (full history)
-chart_head("Where I've run", "Every recorded run placed at its city · bubble size = total distance")
-r=runs_all.copy(); r["loc"]=r["location"].where(r["location"].notna() & r["location"].astype(str).ne("nan"),"Mumbai")
-r["loc"]=r["loc"].apply(lambda c: c if c in CITY_GEO else "Mumbai")
-cv=r.groupby("loc").agg(runs=("distance_km","size"),km=("distance_km","sum")).reset_index()
-cv["lat"]=cv["loc"].map(lambda c: CITY_GEO[c][0]); cv["lon"]=cv["loc"].map(lambda c: CITY_GEO[c][1])
-cv["sz"]=8+ (cv["km"]/cv["km"].max()*22)
-cv["label"]=cv.apply(lambda x:f"{x['loc']} · {int(x['runs'])} runs · {int(x['km'])} km",axis=1)
-mp=go.Figure(go.Scattergeo(lon=cv["lon"],lat=cv["lat"],text=cv["label"],hoverinfo="text",mode="markers",
-    marker=dict(size=cv["sz"],color=VOLT,opacity=.9,line=dict(width=1,color=INK))))
-mp.update_geos(projection_type="natural earth",showland=True,landcolor="#11151B",showcountries=True,countrycolor="#2A313B",
-    countrywidth=0.5,showocean=True,oceancolor="#0B0D10",showcoastlines=True,coastlinecolor="#2A313B",coastlinewidth=0.5,
-    bgcolor="rgba(0,0,0,0)",lakecolor="#0B0D10",lataxis_range=[5,58],lonaxis_range=[-12,100])
-mp.update_layout(paper_bgcolor="rgba(0,0,0,0)",margin=dict(l=0,r=0,t=0,b=0),height=420)
-st.plotly_chart(mp,use_container_width=True,config=STATIC)
+    # ============================================================ 4 · OUTLOOK
+    st.markdown("<div id='outlook'></div>",unsafe_allow_html=True)
+    st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#FF5A3C;">Outlook</div>
+      <h2>The road to Sydney</h2></div><hr class="rule">""", unsafe_allow_html=True)
 
-# Monthly volume heatmap (consistency, full history, additive)
-chart_head("Monthly consistency", "Distance per month · brighter = bigger month · NRC + Strava")
-sv=runs_all.copy(); sv["mn"]=sv["Date_Parsed"].dt.month
-piv=sv.pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
-if NRC is not None:
-    npv=NRC.pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
-    piv=pd.concat([piv,npv])
-piv=piv.groupby(level=0).sum().reindex(columns=range(1,13)).fillna(0).sort_index()
-piv.index=piv.index.astype(int); piv.columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-hm=px.imshow(piv,text_auto=".0f",aspect="auto",color_continuous_scale=[[0,"#0F1318"],[.5,"#5a7a1e"],[1,VOLT]])
-hm.update_layout(**{k:v for k,v in CHART.items() if k!="showlegend"}); hm.update_coloraxes(showscale=False)
-hm.update_traces(textfont=dict(family="'JetBrains Mono', monospace",size=10))
-SHOW(hm,300)
-
-# ============================================================ 3 · THE BUILD
-st.markdown("<div id='build'></div>",unsafe_allow_html=True)
-st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#D6FB4F;">The build</div>
-  <h2>The current block</h2></div>
-  <div class="note">Per-run detail begins Jan 2024, when Garmin and Strava came into sync. Earlier years live in The Journey above.</div>
-  <hr class="rule">""", unsafe_allow_html=True)
-
-det_years=[str(y) for y in sorted(df[df["Date_Parsed"]>=DETAIL_FLOOR]["year"].unique(),reverse=True)]
-with st.expander("Filters", expanded=False):
-    fc1,fc2=st.columns(2)
-    with fc1:
-        yopts=["2024 — now"]+det_years
-        sel_year=st.selectbox("Window",yopts,index=0)
-    with fc2:
-        sel_scope=st.radio("Distance",["All","5K+","10K+","HM+"],horizontal=True,index=0)
-SCOPE={"All":0.0,"5K+":5.0,"10K+":10.0,"HM+":21.0}[sel_scope]
-
-def bruns():
-    r=runs_all[runs_all["Date_Parsed"]>=DETAIL_FLOOR].copy()
-    if sel_year!="2024 — now": r=r[r["year"]==int(sel_year)]
-    if SCOPE>0: r=r[r["distance_km"]>=SCOPE]
-    return r.sort_values("Date_Parsed")
-def bdaily(cols):
-    if daily is None: return None
-    d=daily.dropna(subset=cols); d=d[d["date"]>=DETAIL_FLOOR]
-    if sel_year!="2024 — now": d=d[d["year"]==int(sel_year)]
-    return d.sort_values("date")
-
-# --- Load & safety: weekly km bars + ACWR line + safe band ---
-chart_head("Weekly load & safety", "Bars = weekly km · line = acute:chronic ratio · green band 0.8–1.3 builds safely")
-rb=bruns()
-if rb.empty:
-    detail_empty()
-else:
-    wk=rb.set_index("Date_Parsed")["distance_km"].resample("W-MON").sum().reset_index()
-    fig=make_subplots(specs=[[{"secondary_y":True}]])
-    fig.add_trace(go.Bar(x=wk["Date_Parsed"],y=wk["distance_km"],marker_color="#3a4a12",
-        hovertemplate="%{y:.0f} km<extra></extra>"),secondary_y=False)
+    # current form readouts (last 28 days vs prior 28)
+    recent=runs_all[runs_all["Date_Parsed"]>=pd.Timestamp.today().normalize()-pd.Timedelta(days=28)]
+    prior=runs_all[(runs_all["Date_Parsed"]<pd.Timestamp.today().normalize()-pd.Timedelta(days=28))&(runs_all["Date_Parsed"]>=pd.Timestamp.today().normalize()-pd.Timedelta(days=56))]
+    km28=recent["distance_km"].sum(); kmprev=prior["distance_km"].sum()
+    delta=("+" if km28>=kmprev else "")+f"{(km28-kmprev):.0f}"
+    cur_acwr=cur_ready=cur_vo2=None
     if daily is not None:
-        base=daily[daily["date"]>=DETAIL_FLOOR]
-        if sel_year!="2024 — now": base=base[base["year"]==int(sel_year)]
-        g=base[["date","acute_load","chronic_load"]].dropna(subset=["date"]).sort_values("date").set_index("date").resample("D").mean()
-        if g[["acute_load","chronic_load"]].notna().any().all():
-            ratio=(g["acute_load"].ffill()/g["chronic_load"].ffill()).rolling(7,min_periods=3).mean().dropna()
-            if not ratio.empty:
-                fig.add_hrect(y0=0.8,y1=1.3,fillcolor="rgba(93,202,165,.10)",line_width=0,secondary_y=True)
-                fig.add_trace(go.Scatter(x=ratio.index,y=ratio.values,mode="lines",line=dict(color=TXT2,width=2),
-                    hovertemplate="ACWR %{y:.2f}<extra></extra>"),secondary_y=True)
-                hot=ratio.where(ratio>1.5)
-                fig.add_trace(go.Scatter(x=ratio.index,y=hot.values,mode="lines",line=dict(color=SIGNAL,width=2.5),
-                    hovertemplate="ACWR %{y:.2f}<extra></extra>"),secondary_y=True)
-                fig.add_hline(y=1.5,line_dash="dash",line_color=SIGNAL,secondary_y=True)
-                fig.update_yaxes(range=[0,2],secondary_y=True,title_text="ACWR",showgrid=False,tickfont=dict(color="#5A6472"))
-    fig=grid(fig); fig.update_yaxes(title_text="km / week",secondary_y=False); SHOW(fig,330)
+        dd=daily.dropna(subset=["acute_load","chronic_load"]).sort_values("date")
+        if not dd.empty:
+            rr=dd.set_index("date")[["acute_load","chronic_load"]].resample("D").mean()
+            rser=(rr["acute_load"].ffill()/rr["chronic_load"].ffill()).rolling(7,min_periods=3).mean().dropna()
+            if not rser.empty: cur_acwr=rser.iloc[-1]
+        dr2=daily.dropna(subset=["readiness_score"]).sort_values("date")
+        if not dr2.empty: cur_ready=float(dr2["readiness_score"].iloc[-1])
+        dv2=daily.dropna(subset=["vo2max_running"]).sort_values("date")
+        if not dv2.empty: cur_vo2=float(dv2["vo2max_running"].iloc[-1])
+    acwr_txt=f"{cur_acwr:.2f}" if cur_acwr is not None else "--"
+    acwr_col=VOLT if (cur_acwr is not None and 0.8<=cur_acwr<=1.3) else (SIGNAL if (cur_acwr is not None and cur_acwr>1.5) else "#ECF0F4")
+    ready_txt=f"{cur_ready:.0f}" if cur_ready is not None else "--"
+    vo2_txt=f"{cur_vo2:.0f}" if cur_vo2 is not None else "--"
 
-# --- Pace trend ---
-chart_head("Pace trend", "Every run · faster sits higher · 10-run rolling average")
-rb=bruns(); p=rb[(rb["pace_min_per_km"].notna())&(rb["distance_km"]>=max(2.0,SCOPE))]
-if p.empty: detail_empty()
-else:
-    fig=go.Figure()
-    fig.add_trace(go.Scatter(x=p["Date_Parsed"],y=p["pace_min_per_km"],mode="markers",marker=dict(color=MUTE,size=5)))
-    fig.add_trace(go.Scatter(x=p["Date_Parsed"],y=_rmean(p["pace_min_per_km"],10),mode="lines",line=dict(color=VOLT,width=2.5)))
-    fig=grid(fig); fig.update_yaxes(autorange="reversed",title_text="min/km"); SHOW(fig)
+    st.markdown(f"""<div class="cards">
+      <div class="card"><div class="v" style="color:#FF5A3C;">{days_to}</div><div class="l">Days to {RACE_NAME}</div></div>
+      <div class="card"><div class="v volt">{km28:.0f}<small style="font-size:.9rem;color:#9BA6B2;"> km</small></div><div class="l">Last 28 days · {delta} vs prior</div></div>
+      <div class="card"><div class="v" style="color:{acwr_col};">{acwr_txt}</div><div class="l">Current load (ACWR)</div></div>
+      <div class="card"><div class="v">{ready_txt}</div><div class="l">Readiness today</div></div>
+      <div class="card"><div class="v">{vo2_txt}</div><div class="l">VO\u2082 max</div></div>
+    </div>
+    <div class="note" style="margin-top:10px;">Momentum readout — not a prediction. The plan is the plan; the body has the veto.</div>""", unsafe_allow_html=True)
 
-# --- Cadence trend ---
-chart_head("Cadence", f"Steps per minute · target {CADENCE_TARGET} · 10-run rolling average")
-rb=bruns(); cc=rb[(rb["cadence_spm"].notna())&(rb["cadence_spm"]>120)]
-if cc.empty: detail_empty()
-else:
-    fig=go.Figure()
-    fig.add_trace(go.Scatter(x=cc["Date_Parsed"],y=cc["cadence_spm"],mode="markers",marker=dict(color=MUTE,size=5)))
-    fig.add_trace(go.Scatter(x=cc["Date_Parsed"],y=_rmean(cc["cadence_spm"],10),mode="lines",line=dict(color=VOLT,width=2.5)))
-    fig.add_hline(y=CADENCE_TARGET,line_dash="dash",line_color=SIGNAL,annotation_text=f"target {CADENCE_TARGET}",annotation_font_color=SIGNAL)
-    fig=grid(fig); fig.update_yaxes(title_text="spm"); SHOW(fig)
+with t_lab:
+    # ============================================================ 3 · THE BUILD
+    st.markdown("<div id='build'></div>",unsafe_allow_html=True)
+    st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#D6FB4F;">The build</div>
+      <h2>The current block</h2></div>
+      <div class="note">Per-run detail begins Jan 2024, when Garmin and Strava came into sync. Earlier years live in the Journey tab.</div>
+      <hr class="rule">""", unsafe_allow_html=True)
 
-# --- Aerobic efficiency (signature) ---
-chart_head("Aerobic efficiency", "Effort vs pace · bubble = distance · brighter = more recent · down-left over time = base building")
-rb=bruns(); e=rb[(rb["relative_effort"].notna())&(rb["pace_min_per_km"].notna())]
-if e.empty: detail_empty()
-else:
-    e=e.sort_values("Date_Parsed"); days=(e["Date_Parsed"]-e["Date_Parsed"].min()).dt.days
-    fig=go.Figure(go.Scatter(x=e["relative_effort"],y=e["pace_min_per_km"],mode="markers",
-        marker=dict(size=6+(e["distance_km"]/e["distance_km"].max()*22),
-            color=days,colorscale=[[0,"#2A313B"],[1,VOLT]],showscale=False,line=dict(width=0.5,color=INK)),
-        hovertemplate="effort %{x:.0f} · %{y:.2f} min/km<extra></extra>"))
-    fig=grid(fig); fig.update_yaxes(autorange="reversed",title_text="pace min/km"); fig.update_xaxes(title_text="relative effort"); SHOW(fig)
+    det_years=[str(y) for y in sorted(df[df["Date_Parsed"]>=DETAIL_FLOOR]["year"].unique(),reverse=True)]
+    with st.expander("Filters", expanded=False):
+        fc1,fc2=st.columns(2)
+        with fc1:
+            yopts=["2024 — now"]+det_years
+            sel_year=st.selectbox("Window",yopts,index=0)
+        with fc2:
+            sel_scope=st.radio("Distance",["All","5K+","10K+","HM+"],horizontal=True,index=0)
+    SCOPE={"All":0.0,"5K+":5.0,"10K+":10.0,"HM+":21.0}[sel_scope]
 
-# --- Recovery: HRV + RHR ---
-chart_head("Recovery", "Overnight HRV & resting HR · faint dots raw, bold 7-day rolling · gaps = unsynced days")
-dr=bdaily(["hrv_overnight_ms"])
-if dr is None or dr.empty: detail_empty()
-else:
-    fig=make_subplots(specs=[[{"secondary_y":True}]])
-    fig.add_trace(go.Scatter(x=dr["date"],y=dr["hrv_overnight_ms"],mode="markers",marker=dict(color="rgba(214,251,79,.30)",size=4),hovertemplate="HRV %{y:.0f} ms<extra></extra>"),secondary_y=False)
-    fig.add_trace(go.Scatter(x=dr["date"],y=_rmean(dr["hrv_overnight_ms"],7),mode="lines",line=dict(color=VOLT,width=2.5),hovertemplate="HRV %{y:.0f} ms<extra></extra>"),secondary_y=False)
-    drh=bdaily(["rhr"])
-    if drh is not None and not drh.empty:
-        fig.add_trace(go.Scatter(x=drh["date"],y=drh["rhr"],mode="markers",marker=dict(color="rgba(133,183,235,.30)",size=4),hovertemplate="RHR %{y:.0f} bpm<extra></extra>"),secondary_y=True)
-        fig.add_trace(go.Scatter(x=drh["date"],y=_rmean(drh["rhr"],7),mode="lines",line=dict(color="#85B7EB",width=2),hovertemplate="RHR %{y:.0f} bpm<extra></extra>"),secondary_y=True)
-        if RHR_BASE: fig.add_hline(y=RHR_BASE,line_dash="dot",line_color="#85B7EB",secondary_y=True)
-    fig=grid(fig); fig.update_yaxes(title_text="HRV ms",secondary_y=False)
-    fig.update_yaxes(title_text="RHR bpm",secondary_y=True,showgrid=False,tickfont=dict(color="#5A6472"))
-    SHOW(fig,330)
+    def bruns():
+        r=runs_all[runs_all["Date_Parsed"]>=DETAIL_FLOOR].copy()
+        if sel_year!="2024 — now": r=r[r["year"]==int(sel_year)]
+        if SCOPE>0: r=r[r["distance_km"]>=SCOPE]
+        return r.sort_values("Date_Parsed")
+    def bdaily(cols):
+        if daily is None: return None
+        d=daily.dropna(subset=cols); d=d[d["date"]>=DETAIL_FLOOR]
+        if sel_year!="2024 — now": d=d[d["year"]==int(sel_year)]
+        return d.sort_values("date")
 
-# --- Economy small multiples ---
-chart_head("Running economy", "Ground contact · vertical ratio · stride — each annotated with the good direction")
-rb=bruns()
-econ=[("gct_ms","Ground contact (ms)","lower is better"),("vert_ratio","Vertical ratio (%)","lower is better"),("step_len_m","Stride (m)","higher is better")]
-if rb[[c for c,_,_ in econ if c in rb.columns]].dropna(how="all").empty:
-    detail_empty()
-else:
-    cols=st.columns(3)
-    for (col,lbl,good),cc in zip(econ,cols):
-        with cc:
-            if col not in rb.columns or rb[col].notna().sum()==0:
-                st.markdown(f"<div class='ch-s'>{lbl}</div><div class='empty' style='padding:18px'>no data</div>",unsafe_allow_html=True); continue
-            d=rb[rb[col].notna()]
-            st.markdown(f"<div class='ch-s'>{lbl} · <span style='color:#9BA6B2'>{good}</span></div>",unsafe_allow_html=True)
-            fig=go.Figure()
-            fig.add_trace(go.Scatter(x=d["Date_Parsed"],y=d[col],mode="markers",marker=dict(color=MUTE,size=3)))
-            fig.add_trace(go.Scatter(x=d["Date_Parsed"],y=_rmean(d[col],10),mode="lines",line=dict(color=VOLT,width=2)))
-            fig=grid(fig); fig.update_xaxes(showticklabels=False); SHOW(fig,200)
-
-# --- Fitness: VO2 stepped + readiness today ---
-chart_head("Fitness", "VO\u2082 max trend (stepped) and today's training readiness")
-fc1,fc2=st.columns([2,1])
-with fc1:
-    dv=bdaily(["vo2max_running"])
-    if dv is None or dv.empty: detail_empty()
+    # --- Load & safety: weekly km bars + ACWR line + safe band ---
+    chart_head("Weekly load & safety", "Bars = weekly km · line = acute:chronic ratio · green band 0.8–1.3 builds safely")
+    rb=bruns()
+    if rb.empty:
+        detail_empty()
     else:
-        fig=go.Figure(go.Scatter(x=dv["date"],y=dv["vo2max_running"],mode="lines",line=dict(color=VOLT,width=2.5,shape="hv"),hovertemplate="VO2 %{y:.1f}<extra></extra>"))
-        fig=grid(fig); fig.update_yaxes(title_text="VO\u2082 max"); SHOW(fig,260)
-with fc2:
-    dr=bdaily(["readiness_score"])
-    if dr is None or dr.empty:
-        st.markdown("<div class='empty' style='padding:30px'>Detailed data starts Jan 2024</div>",unsafe_allow_html=True)
+        wk=rb.set_index("Date_Parsed")["distance_km"].resample("W-MON").sum().reset_index()
+        fig=make_subplots(specs=[[{"secondary_y":True}]])
+        fig.add_trace(go.Bar(x=wk["Date_Parsed"],y=wk["distance_km"],marker_color="#3a4a12",
+            hovertemplate="%{y:.0f} km<extra></extra>"),secondary_y=False)
+        if daily is not None:
+            base=daily[daily["date"]>=DETAIL_FLOOR]
+            if sel_year!="2024 — now": base=base[base["year"]==int(sel_year)]
+            g=base[["date","acute_load","chronic_load"]].dropna(subset=["date"]).sort_values("date").set_index("date").resample("D").mean()
+            if g[["acute_load","chronic_load"]].notna().any().all():
+                ratio=(g["acute_load"].ffill()/g["chronic_load"].ffill()).rolling(7,min_periods=3).mean().dropna()
+                if not ratio.empty:
+                    fig.add_hrect(y0=0.8,y1=1.3,fillcolor="rgba(93,202,165,.10)",line_width=0,secondary_y=True)
+                    fig.add_trace(go.Scatter(x=ratio.index,y=ratio.values,mode="lines",line=dict(color=TXT2,width=2),
+                        hovertemplate="ACWR %{y:.2f}<extra></extra>"),secondary_y=True)
+                    hot=ratio.where(ratio>1.5)
+                    fig.add_trace(go.Scatter(x=ratio.index,y=hot.values,mode="lines",line=dict(color=SIGNAL,width=2.5),
+                        hovertemplate="ACWR %{y:.2f}<extra></extra>"),secondary_y=True)
+                    fig.add_hline(y=1.5,line_dash="dash",line_color=SIGNAL,secondary_y=True)
+                    fig.update_yaxes(range=[0,2],secondary_y=True,title_text="ACWR",showgrid=False,tickfont=dict(color="#5A6472"))
+        fig=grid(fig); fig.update_yaxes(title_text="km / week",secondary_y=False); SHOW(fig,330)
+
+    # --- Pace trend ---
+    chart_head("Pace trend", "Every run · faster sits higher · 10-run rolling average")
+    rb=bruns(); p=rb[(rb["pace_min_per_km"].notna())&(rb["distance_km"]>=max(2.0,SCOPE))]
+    if p.empty: detail_empty()
     else:
-        val=float(dr.sort_values("date")["readiness_score"].iloc[-1])
-        col=VOLT if val>=66 else (SIGNAL if val<40 else "#85B7EB")
-        g=go.Figure(go.Indicator(mode="gauge+number",value=round(val),
-            gauge=dict(axis=dict(range=[0,100],tickcolor="#5A6472"),bar=dict(color=col),
-                bgcolor="#14171C",borderwidth=0,
-                steps=[dict(range=[0,40],color="rgba(255,90,60,.12)"),dict(range=[40,66],color="rgba(133,183,235,.10)"),dict(range=[66,100],color="rgba(214,251,79,.12)")]),
-            number=dict(font=dict(family="'JetBrains Mono', monospace",color=col,size=34))))
-        g.update_layout(paper_bgcolor="rgba(0,0,0,0)",height=260,margin=dict(l=10,r=10,t=30,b=10),
-            title=dict(text="READINESS TODAY",font=dict(family="'JetBrains Mono', monospace",color="#5A6472",size=11)))
-        st.plotly_chart(g,use_container_width=True,config=STATIC)
+        fig=go.Figure()
+        fig.add_trace(go.Scatter(x=p["Date_Parsed"],y=p["pace_min_per_km"],mode="markers",marker=dict(color=MUTE,size=5)))
+        fig.add_trace(go.Scatter(x=p["Date_Parsed"],y=_rmean(p["pace_min_per_km"],10),mode="lines",line=dict(color=VOLT,width=2.5)))
+        fig=grid(fig); fig.update_yaxes(autorange="reversed",title_text="min/km"); SHOW(fig)
 
-# --- Heart rate footnote ---
-chart_head("Heart rate", "Wrist HR — indicative only · pace and effort are the trusted signals")
-rb=bruns(); h=rb[rb["avg_hr"].notna()] if "avg_hr" in rb.columns else rb.iloc[0:0]
-if h.empty: detail_empty()
-else:
-    fig=go.Figure()
-    fig.add_trace(go.Scatter(x=h["Date_Parsed"],y=h["avg_hr"],mode="markers",marker=dict(color=MUTE,size=4)))
-    fig.add_trace(go.Scatter(x=h["Date_Parsed"],y=_rmean(h["avg_hr"],10),mode="lines",line=dict(color="#85B7EB",width=2)))
-    fig=grid(fig); fig.update_yaxes(title_text="avg HR (wrist)"); SHOW(fig,240)
+    # --- Cadence trend ---
+    chart_head("Cadence", f"Steps per minute · target {CADENCE_TARGET} · 10-run rolling average")
+    rb=bruns(); cc=rb[(rb["cadence_spm"].notna())&(rb["cadence_spm"]>120)]
+    if cc.empty: detail_empty()
+    else:
+        fig=go.Figure()
+        fig.add_trace(go.Scatter(x=cc["Date_Parsed"],y=cc["cadence_spm"],mode="markers",marker=dict(color=MUTE,size=5)))
+        fig.add_trace(go.Scatter(x=cc["Date_Parsed"],y=_rmean(cc["cadence_spm"],10),mode="lines",line=dict(color=VOLT,width=2.5)))
+        fig.add_hline(y=CADENCE_TARGET,line_dash="dash",line_color=SIGNAL,annotation_text=f"target {CADENCE_TARGET}",annotation_font_color=SIGNAL)
+        fig=grid(fig); fig.update_yaxes(title_text="spm"); SHOW(fig)
 
-# ============================================================ 4 · OUTLOOK
-st.markdown("<div id='outlook'></div>",unsafe_allow_html=True)
-st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#FF5A3C;">Outlook</div>
-  <h2>The road to Sydney</h2></div><hr class="rule">""", unsafe_allow_html=True)
+    # --- Aerobic efficiency (signature) ---
+    chart_head("Aerobic efficiency", "Effort vs pace · bubble = distance · brighter = more recent · down-left over time = base building")
+    rb=bruns(); e=rb[(rb["relative_effort"].notna())&(rb["pace_min_per_km"].notna())]
+    if e.empty: detail_empty()
+    else:
+        e=e.sort_values("Date_Parsed"); days=(e["Date_Parsed"]-e["Date_Parsed"].min()).dt.days
+        fig=go.Figure(go.Scatter(x=e["relative_effort"],y=e["pace_min_per_km"],mode="markers",
+            marker=dict(size=6+(e["distance_km"]/e["distance_km"].max()*22),
+                color=days,colorscale=[[0,"#2A313B"],[1,VOLT]],showscale=False,line=dict(width=0.5,color=INK)),
+            hovertemplate="effort %{x:.0f} · %{y:.2f} min/km<extra></extra>"))
+        fig=grid(fig); fig.update_yaxes(autorange="reversed",title_text="pace min/km"); fig.update_xaxes(title_text="relative effort"); SHOW(fig)
 
-# current form readouts (last 28 days vs prior 28)
-recent=runs_all[runs_all["Date_Parsed"]>=pd.Timestamp.today().normalize()-pd.Timedelta(days=28)]
-prior=runs_all[(runs_all["Date_Parsed"]<pd.Timestamp.today().normalize()-pd.Timedelta(days=28))&(runs_all["Date_Parsed"]>=pd.Timestamp.today().normalize()-pd.Timedelta(days=56))]
-km28=recent["distance_km"].sum(); kmprev=prior["distance_km"].sum()
-delta=("+" if km28>=kmprev else "")+f"{(km28-kmprev):.0f}"
-cur_acwr=cur_ready=cur_vo2=None
-if daily is not None:
-    dd=daily.dropna(subset=["acute_load","chronic_load"]).sort_values("date")
-    if not dd.empty:
-        rr=dd.set_index("date")[["acute_load","chronic_load"]].resample("D").mean()
-        rser=(rr["acute_load"].ffill()/rr["chronic_load"].ffill()).rolling(7,min_periods=3).mean().dropna()
-        if not rser.empty: cur_acwr=rser.iloc[-1]
-    dr2=daily.dropna(subset=["readiness_score"]).sort_values("date")
-    if not dr2.empty: cur_ready=float(dr2["readiness_score"].iloc[-1])
-    dv2=daily.dropna(subset=["vo2max_running"]).sort_values("date")
-    if not dv2.empty: cur_vo2=float(dv2["vo2max_running"].iloc[-1])
-acwr_txt=f"{cur_acwr:.2f}" if cur_acwr is not None else "--"
-acwr_col=VOLT if (cur_acwr is not None and 0.8<=cur_acwr<=1.3) else (SIGNAL if (cur_acwr is not None and cur_acwr>1.5) else "#ECF0F4")
-ready_txt=f"{cur_ready:.0f}" if cur_ready is not None else "--"
-vo2_txt=f"{cur_vo2:.0f}" if cur_vo2 is not None else "--"
+    # --- Recovery: HRV + RHR ---
+    chart_head("Recovery", "Overnight HRV & resting HR · faint dots raw, bold 7-day rolling · gaps = unsynced days")
+    dr=bdaily(["hrv_overnight_ms"])
+    if dr is None or dr.empty: detail_empty()
+    else:
+        fig=make_subplots(specs=[[{"secondary_y":True}]])
+        fig.add_trace(go.Scatter(x=dr["date"],y=dr["hrv_overnight_ms"],mode="markers",marker=dict(color="rgba(214,251,79,.30)",size=4),hovertemplate="HRV %{y:.0f} ms<extra></extra>"),secondary_y=False)
+        fig.add_trace(go.Scatter(x=dr["date"],y=_rmean(dr["hrv_overnight_ms"],7),mode="lines",line=dict(color=VOLT,width=2.5),hovertemplate="HRV %{y:.0f} ms<extra></extra>"),secondary_y=False)
+        drh=bdaily(["rhr"])
+        if drh is not None and not drh.empty:
+            fig.add_trace(go.Scatter(x=drh["date"],y=drh["rhr"],mode="markers",marker=dict(color="rgba(133,183,235,.30)",size=4),hovertemplate="RHR %{y:.0f} bpm<extra></extra>"),secondary_y=True)
+            fig.add_trace(go.Scatter(x=drh["date"],y=_rmean(drh["rhr"],7),mode="lines",line=dict(color="#85B7EB",width=2),hovertemplate="RHR %{y:.0f} bpm<extra></extra>"),secondary_y=True)
+            if RHR_BASE: fig.add_hline(y=RHR_BASE,line_dash="dot",line_color="#85B7EB",secondary_y=True)
+        fig=grid(fig); fig.update_yaxes(title_text="HRV ms",secondary_y=False)
+        fig.update_yaxes(title_text="RHR bpm",secondary_y=True,showgrid=False,tickfont=dict(color="#5A6472"))
+        SHOW(fig,330)
 
-st.markdown(f"""<div class="cards">
-  <div class="card"><div class="v" style="color:#FF5A3C;">{days_to}</div><div class="l">Days to {RACE_NAME}</div></div>
-  <div class="card"><div class="v volt">{km28:.0f}<small style="font-size:.9rem;color:#9BA6B2;"> km</small></div><div class="l">Last 28 days · {delta} vs prior</div></div>
-  <div class="card"><div class="v" style="color:{acwr_col};">{acwr_txt}</div><div class="l">Current load (ACWR)</div></div>
-  <div class="card"><div class="v">{ready_txt}</div><div class="l">Readiness today</div></div>
-  <div class="card"><div class="v">{vo2_txt}</div><div class="l">VO\u2082 max</div></div>
-</div>
-<div class="note" style="margin-top:10px;">Momentum readout — not a prediction. The plan is the plan; the body has the veto.</div>""", unsafe_allow_html=True)
+    # --- Economy small multiples ---
+    chart_head("Running economy", "Ground contact · vertical ratio · stride — each annotated with the good direction")
+    rb=bruns()
+    econ=[("gct_ms","Ground contact (ms)","lower is better"),("vert_ratio","Vertical ratio (%)","lower is better"),("step_len_m","Stride (m)","higher is better")]
+    if rb[[c for c,_,_ in econ if c in rb.columns]].dropna(how="all").empty:
+        detail_empty()
+    else:
+        cols=st.columns(3)
+        for (col,lbl,good),cc in zip(econ,cols):
+            with cc:
+                if col not in rb.columns or rb[col].notna().sum()==0:
+                    st.markdown(f"<div class='ch-s'>{lbl}</div><div class='empty' style='padding:18px'>no data</div>",unsafe_allow_html=True); continue
+                d=rb[rb[col].notna()]
+                st.markdown(f"<div class='ch-s'>{lbl} · <span style='color:#9BA6B2'>{good}</span></div>",unsafe_allow_html=True)
+                fig=go.Figure()
+                fig.add_trace(go.Scatter(x=d["Date_Parsed"],y=d[col],mode="markers",marker=dict(color=MUTE,size=3)))
+                fig.add_trace(go.Scatter(x=d["Date_Parsed"],y=_rmean(d[col],10),mode="lines",line=dict(color=VOLT,width=2)))
+                fig=grid(fig); fig.update_xaxes(showticklabels=False); SHOW(fig,200)
+
+    # --- Fitness: VO2 stepped + readiness today ---
+    chart_head("Fitness", "VO\u2082 max trend (stepped) and today's training readiness")
+    fc1,fc2=st.columns([2,1])
+    with fc1:
+        dv=bdaily(["vo2max_running"])
+        if dv is None or dv.empty: detail_empty()
+        else:
+            fig=go.Figure(go.Scatter(x=dv["date"],y=dv["vo2max_running"],mode="lines",line=dict(color=VOLT,width=2.5,shape="hv"),hovertemplate="VO2 %{y:.1f}<extra></extra>"))
+            fig=grid(fig); fig.update_yaxes(title_text="VO\u2082 max"); SHOW(fig,260)
+    with fc2:
+        dr=bdaily(["readiness_score"])
+        if dr is None or dr.empty:
+            st.markdown("<div class='empty' style='padding:30px'>Detailed data starts Jan 2024</div>",unsafe_allow_html=True)
+        else:
+            val=float(dr.sort_values("date")["readiness_score"].iloc[-1])
+            col=VOLT if val>=66 else (SIGNAL if val<40 else "#85B7EB")
+            g=go.Figure(go.Indicator(mode="gauge+number",value=round(val),
+                gauge=dict(axis=dict(range=[0,100],tickcolor="#5A6472"),bar=dict(color=col),
+                    bgcolor="#14171C",borderwidth=0,
+                    steps=[dict(range=[0,40],color="rgba(255,90,60,.12)"),dict(range=[40,66],color="rgba(133,183,235,.10)"),dict(range=[66,100],color="rgba(214,251,79,.12)")]),
+                number=dict(font=dict(family="'JetBrains Mono', monospace",color=col,size=34))))
+            g.update_layout(paper_bgcolor="rgba(0,0,0,0)",height=260,margin=dict(l=10,r=10,t=30,b=10),
+                title=dict(text="READINESS TODAY",font=dict(family="'JetBrains Mono', monospace",color="#5A6472",size=11)))
+            st.plotly_chart(g,use_container_width=True,config=STATIC)
+
+    # --- Heart rate footnote ---
+    chart_head("Heart rate", "Wrist HR — indicative only · pace and effort are the trusted signals")
+    rb=bruns(); h=rb[rb["avg_hr"].notna()] if "avg_hr" in rb.columns else rb.iloc[0:0]
+    if h.empty: detail_empty()
+    else:
+        fig=go.Figure()
+        fig.add_trace(go.Scatter(x=h["Date_Parsed"],y=h["avg_hr"],mode="markers",marker=dict(color=MUTE,size=4)))
+        fig.add_trace(go.Scatter(x=h["Date_Parsed"],y=_rmean(h["avg_hr"],10),mode="lines",line=dict(color="#85B7EB",width=2)))
+        fig=grid(fig); fig.update_yaxes(title_text="avg HR (wrist)"); SHOW(fig,240)
+
+with t_reg:
+    st.markdown("<div class='sec'><div class='eyebrow' style='color:#FF5A3C;'>Race registry</div><h2>Official races</h2></div><hr class='rule'>", unsafe_allow_html=True)
+    pr_dates={best_effort(runs_all,lo,hi)["Date_Parsed"].date() for _,lo,hi in PB_BANDS if best_effort(runs_all,lo,hi) is not None}
+    races=runs_all[runs_all["Race_Tag"].notna()].copy(); races["_d"]=races["Date_Parsed"].dt.date
+    races=races.sort_values("distance_km",ascending=False).drop_duplicates("_d").sort_values("Date_Parsed",ascending=False)
+    if races.empty:
+        st.markdown("<div class='empty'>No registered races.</div>", unsafe_allow_html=True)
+    for _,rr in races.iterrows():
+        full=rr["Category_Custom"]=="Full Marathon"; acc=SIGNAL if full else VOLT
+        chips="<span class='chip pr'>PR</span>" if rr["Date_Parsed"].date() in pr_dates else ""
+        if rr["Race_Note"]: chips+=f"<span class='chip' style='color:{acc};background:#1E232B;'>{rr['Race_Note']}</span>"
+        note=f"<div>{chips}</div>" if chips else ""
+        st.markdown(f"<div class='row' style='border-left:3px solid {acc};'><div><div class='nm'>{rr['Race_Tag']}</div><div class='meta'>{rr['Date_Parsed'].strftime('%d %b %Y')} · BIB {rr['Race_Bib']}</div>{note}</div><div class='stats'><div class='stat'><div class='n'>{rr['distance_km']:.2f}</div><div class='u'>KM</div></div><div class='stat'><div class='n'>{rr['moving_time_hms']}</div><div class='u'>TIME</div></div><div class='stat'><div class='n'>{rr['pace_str']}</div><div class='u'>/KM</div></div></div></div>", unsafe_allow_html=True)
+
+with t_log:
+    st.markdown("<div class='sec'><div class='eyebrow' style='color:#D6FB4F;'>Activity log</div><h2>Recent runs</h2></div><hr class='rule'>", unsafe_allow_html=True)
+    log_df=runs_all.sort_values("Date_Parsed",ascending=False)
+    show_all=st.checkbox(f"Show all {len(log_df)} runs", value=False) if len(log_df)>20 else True
+    rows_=log_df if show_all else log_df.head(20)
+    for _,rr in rows_.iterrows():
+        full=rr["Category_Custom"]=="Full Marathon"; acc=SIGNAL if full else "#85B7EB"
+        cad=f"{rr['cadence_spm']:.0f}" if pd.notna(rr.get('cadence_spm')) else "--"
+        hr=f"{rr['avg_hr']:.0f}" if ('avg_hr' in rr.index and pd.notna(rr.get('avg_hr'))) else "--"
+        st.markdown(f"<div class='row' style='border-left:3px solid {acc};'><div><div class='nm'>{rr['name']}</div><div class='meta'>{rr['Category_Custom'].upper()} · {rr['Date_Parsed'].strftime('%d %b %Y')}</div></div><div class='stats'><div class='stat'><div class='n'>{rr['distance_km']:.2f}</div><div class='u'>KM</div></div><div class='stat'><div class='n'>{rr['moving_time_hms']}</div><div class='u'>TIME</div></div><div class='stat'><div class='n'>{rr['pace_str']}</div><div class='u'>/KM</div></div><div class='stat'><div class='n'>{cad}</div><div class='u'>SPM</div></div><div class='stat'><div class='n'>{hr}</div><div class='u'>HR</div></div></div></div>", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="footer">
   <span>STRIDE · STRAVA · GARMIN · NIKE RUN CLUB</span>
