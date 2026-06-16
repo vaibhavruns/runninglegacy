@@ -241,19 +241,21 @@ def best_effort(runs,lo,hi):
 PB_BANDS=[("5K",4.9,5.3),("10K",9.7,10.6),("HALF",20.9,21.6),("FULL",41.9,43.5)]
 
 df=load_data(); daily=load_daily(_sig=(os.path.getmtime("daily_metrics.csv") if os.path.exists("daily_metrics.csv") else 0)); PROFILE=load_profile(); ZONES=load_zones(); NRC=load_nrc()
-NRC_CUTOFF=2024  # NRC monthly archive authoritative before this year; Strava per-run from this year on
+NRC_CUTOFF=2024  # informational: NRC archive covers up to here; Strava per-run takes over after
 def annual_volume(runs):
-    # Blended TRUE yearly volume: NRC archive for pre-2024, Strava per-run for 2024+.
-    # Each year is sourced from exactly one layer, so the two are never double-counted.
+    # ADDITIVE yearly volume: Strava per-run + NRC monthly archive are treated as
+    # separate runs and summed per year (user-confirmed they are distinct, not the same runs logged twice).
     sv=runs.groupby("year")["distance_km"].sum(); svn=runs.groupby("year").size()
     years=set(int(y) for y in sv.index)
     if NRC is not None: years|=set(int(y) for y in NRC["year"].unique())
     rows=[]
     for y in sorted(years):
-        if y<NRC_CUTOFF and NRC is not None and (NRC["year"]==y).any():
-            sub=NRC[NRC["year"]==y]; rows.append({"year":y,"km":float(sub["total_km"].sum()),"runs":int(sub["num_runs"].sum()),"source":"NRC"})
-        else:
-            rows.append({"year":y,"km":float(sv.get(y,0.0)),"runs":int(svn.get(y,0)),"source":"Strava"})
+        nk=nr=0.0
+        if NRC is not None and (NRC["year"]==y).any():
+            sub=NRC[NRC["year"]==y]; nk=float(sub["total_km"].sum()); nr=int(sub["num_runs"].sum())
+        km=float(sv.get(y,0.0))+nk; rn=int(svn.get(y,0))+int(nr)
+        src="NRC + Strava" if (nk>0 and sv.get(y,0)>0) else ("NRC" if nk>0 else "Strava")
+        rows.append({"year":y,"km":km,"runs":rn,"source":src,"has_nrc":nk>0})
     return pd.DataFrame(rows)
 HRMAX=int(PROFILE.get("max_hr")) if PROFILE.get("max_hr") else (int(df["max_hr"].max()) if (df is not None and "max_hr" in df.columns and df["max_hr"].notna().any()) else 190)
 RHR_BASE=int(PROFILE.get("resting_hr")) if PROFILE.get("resting_hr") else None
@@ -341,11 +343,13 @@ with t_rec:
     n_full=int((runs_all["distance_km"]>=42.0).sum()); n_half=int(((runs_all["distance_km"]>=21.0)&(runs_all["distance_km"]<42.0)).sum())
     lr=runs_all.loc[runs_all["distance_km"].idxmax()]; bf=best_effort(runs_all,41.9,43.5); bh=best_effort(runs_all,20.9,21.6)
     fs=f"best {bf['moving_time_hms']}" if bf is not None else "42 km +"; hs=f"best {bh['moving_time_hms']}" if bh is not None else "21\u201342 km"
+    _av=annual_volume(runs_all); _life_km=int(_av["km"].sum()); _life_runs=int(_av["runs"].sum())
     st.markdown(f"""<div class="section-h">DISTANCE MILESTONES</div><div class="kpi-container">
       <div class="kpi-card accent"><div class="kpi-value">{n_full}</div><div class="kpi-label">// FULL MARATHONS</div><div class="kpi-sub">42 km \u00b7 {fs}</div></div>
       <div class="kpi-card accent"><div class="kpi-value">{n_half}</div><div class="kpi-label">// HALF MARATHON OR LONGER</div><div class="kpi-sub">21\u201342 km \u00b7 {hs}</div></div>
       <div class="kpi-card"><div class="kpi-value">{lr['distance_km']:.1f}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LONGEST RUN</div><div class="kpi-sub">{lr['Date_Parsed'].strftime('%d %b %Y')}</div></div>
-      <div class="kpi-card"><div class="kpi-value">{int(annual_volume(runs_all)['km'].sum()):,}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LIFETIME DISTANCE</div><div class="kpi-sub">NRC + Strava</div></div>
+      <div class="kpi-card"><div class="kpi-value">{_life_km:,}<span style='font-size:.9rem;'> KM</span></div><div class="kpi-label">// LIFETIME DISTANCE</div><div class="kpi-sub">NRC + Strava</div></div>
+      <div class="kpi-card"><div class="kpi-value">{_life_runs:,}</div><div class="kpi-label">// TOTAL RUNS</div><div class="kpi-sub">NRC + Strava</div></div>
     </div>""", unsafe_allow_html=True)
     st.markdown('<div class="chart-container-box"><h3>Official Race Registry</h3>', unsafe_allow_html=True)
     pr_dates={best_effort(runs_all,lo,hi)["Date_Parsed"].date() for _,lo,hi in PB_BANDS if best_effort(runs_all,lo,hi) is not None}
@@ -532,7 +536,7 @@ with t_data:
         if av.empty: st.info("No volume data in this filter."); st.markdown("</div>",unsafe_allow_html=True); return
         av["yr"]=av["year"].astype(str)
         fig=px.bar(av,x="yr",y="km",text_auto=".0f",color="yr",color_discrete_map=YEAR_COLORS)
-        nrc_years=set(av[av["source"]=="NRC"]["yr"])
+        nrc_years=set(av[av["has_nrc"]]["yr"])
         for tr in fig.data:
             if tr.name in nrc_years: tr.marker.pattern=dict(shape="/",solidity=0.55,fgcolor="#0a0d13")
         fig=grid(fig); fig.update_layout(showlegend=False); fig.update_yaxes(title_text="km"); fig.update_xaxes(title_text="")
@@ -554,9 +558,9 @@ with t_data:
     def c_heat():
         st.markdown('<div class="chart-container-box"><h3>Monthly Volume Heatmap</h3>', unsafe_allow_html=True)
         sv=runs_all.copy(); sv["mn"]=sv["Date_Parsed"].dt.month
-        piv=sv[sv["year"]>=NRC_CUTOFF].pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
+        piv=sv.pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
         if NRC is not None:
-            npv=NRC[NRC["year"]<NRC_CUTOFF].pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
+            npv=NRC.pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
             piv=pd.concat([piv,npv])
         piv=piv.groupby(level=0).sum().reindex(columns=range(1,13)).fillna(0).sort_index()
         if sel_year!="ALL TIME": piv=piv[piv.index==int(sel_year)]
@@ -649,10 +653,10 @@ with t_data:
         "Performance \u00b7 Running Power":"Running power in watts per run \u2014 effort that's independent of pace, hills and wind. Steady or rising output at the same feel signals improving strength.",
         "Trends \u00b7 Weekly Mileage":"Total distance run each week. Training blocks, taper weeks and breaks all show up at a glance.",
         "Trends \u00b7 Pace Trend":"Average pace of every run over time (faster sits higher). The line is a 10-run rolling average showing the direction of your speed.",
-        "Trends \u00b7 Volume by Year":"Total kilometres per calendar year. 2021\u20132023 come from your Nike Run Club archive (hatched bars); 2024 on is per-run Strava/Garmin. Strava badly under-counted the early years, so this is the truer growth curve \u2014 2022 was a ~770 km year, not the ~340 Strava alone showed.",
+        "Trends \u00b7 Volume by Year":"Total kilometres per calendar year. Years with a Nike Run Club archive (2021\u20132023) are hatched and add NRC + Strava together, since those were separate runs across the two apps \u2014 so 2022 lands at ~1,100 km, your true volume.",
         "Trends \u00b7 Distance Mix":"How your runs split across distance buckets \u2014 how much is short and easy versus long efforts.",
         "Patterns \u00b7 Day of Week":"Which days you run most, by distance \u2014 your weekly rhythm and long-run day.",
-        "Patterns \u00b7 Monthly Heatmap":"Distance per month across the years; brighter cells are bigger months. Pre-2024 months come from the Nike Run Club archive, 2024+ from Strava/Garmin \u2014 so your real 2022 base block finally shows.",
+        "Patterns \u00b7 Monthly Heatmap":"Distance per month across the years; brighter cells are bigger months. Pre-2024 months add the Nike Run Club archive on top of Strava, so your full 2022 base block shows at its true size.",
         "Heart \u00b7 Heart Rate Trend":"Average and max HR per run over time. The average trending down at similar paces is a clean sign of improving fitness.",
         "Heart \u00b7 Aerobic Efficiency":"Metres covered per heartbeat on 5 km+ runs. Rising = the same speed at lower cardiac cost \u2014 pure aerobic gains.",
         "Heart \u00b7 Pace vs Heart Rate":"Each run plotted as pace against heart rate, coloured by year. Points drifting down-and-left over the years mean faster at the same effort.",
