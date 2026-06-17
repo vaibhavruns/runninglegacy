@@ -22,7 +22,9 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 html{ scroll-behavior:smooth; }
 .stApp{ background:#0B0D10!important; color:#9BA6B2!important; font-family:'Saira',system-ui,sans-serif!important; }
-.block-container{ padding-top:1.4rem!important; max-width:1180px; }
+.block-container{ padding-top:3.6rem!important; max-width:1180px; }
+header[data-testid="stHeader"]{ background:rgba(11,13,16,0.85)!important; backdrop-filter:blur(4px); }
+.nav{ margin-top:6px; }
 [data-testid="stMarkdownContainer"] p,p,label,.stSelectbox div{ color:#9BA6B2!important; }
 h1,h2,h3,h4{ font-family:'Saira',sans-serif!important; color:#ECF0F4!important; }
 .mono{ font-family:'JetBrains Mono',ui-monospace,monospace; }
@@ -412,6 +414,63 @@ with t_over:
     <div class="note" style="margin-top:10px;">Momentum readout — not a prediction. The plan is the plan; the body has the veto.</div>""", unsafe_allow_html=True)
 
 with t_lab:
+    # ===================== TRENDS (trivia · full history · per-chart filters) =====================
+    st.markdown("""<div class="sec"><div class="eyebrow" style="color:#D6FB4F;">Trends</div>
+      <h2>Patterns &amp; trivia</h2></div>
+      <div class="note">Full-history patterns across every recorded run. Each chart carries its own filter.</div>
+      <hr class="rule">""", unsafe_allow_html=True)
+    tr_years=["All time"]+[str(y) for y in sorted(runs_all["year"].dropna().astype(int).unique(),reverse=True)]
+    def tr_scope(key,r):
+        yr=st.selectbox("Year",tr_years,index=0,key=key)
+        return r if yr=="All time" else r[r["year"]==int(yr)]
+
+    # Day of week
+    chart_head("Day of week", "Which days carry the miles")
+    dow_metric=st.radio("Measure",["Distance","Runs"],horizontal=True,index=0,key="dow_m")
+    d=tr_scope("dow_y",runs_all.copy())
+    order=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+    if dow_metric=="Distance":
+        wd=d.groupby("weekday")["distance_km"].sum().reindex(order).fillna(0); ylab="km"
+    else:
+        wd=d.groupby("weekday").size().reindex(order).fillna(0); ylab="runs"
+    fig=go.Figure(go.Bar(x=order,y=wd.values,marker_color=VOLT,text=[f"{v:.0f}" for v in wd.values],
+        textposition="outside",textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11)))
+    fig=grid(fig); fig.update_yaxes(title_text=ylab); SHOW(fig,260)
+
+    # Hour of day
+    chart_head("Time of day", "When the runs start")
+    d=tr_scope("hour_y",runs_all.copy())
+    if "hour" in d.columns and d["hour"].notna().any():
+        hr=d.groupby(d["hour"].astype("Int64")).size().reindex(range(0,24)).fillna(0)
+        fig=go.Figure(go.Bar(x=list(range(0,24)),y=hr.values,marker_color="#85B7EB"))
+        fig=grid(fig); fig.update_yaxes(title_text="runs"); fig.update_xaxes(title_text="hour"); SHOW(fig,240)
+    else:
+        st.markdown("<div class='empty'>No start-hour data in this filter.</div>",unsafe_allow_html=True)
+
+    # Distance mix
+    chart_head("Distance mix", "How the runs break down by length")
+    d=tr_scope("mix_y",runs_all.copy())
+    order2=["Less than 10K","10K Runs","Between 10K and 21K","Half Marathon","Between Half and Full","Full Marathon"]
+    fr=d["Category_Custom"].value_counts().reindex(order2).fillna(0)
+    fr=fr[fr>0]
+    fig=go.Figure(go.Bar(x=fr.values,y=fr.index,orientation="h",marker_color=VOLT,
+        text=[f"{v:.0f}" for v in fr.values],textposition="outside",textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11)))
+    fig=grid(fig); fig.update_xaxes(title_text="runs"); fig.update_yaxes(showgrid=False); SHOW(fig,260)
+
+    # Monthly consistency (moved from Overview · full history · additive)
+    chart_head("Monthly consistency", "Distance per month · brighter = bigger month · NRC + Strava, additive")
+    sv=runs_all.copy(); sv["mn"]=sv["Date_Parsed"].dt.month
+    piv=sv.pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
+    if NRC is not None:
+        npv=NRC.pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
+        piv=pd.concat([piv,npv])
+    piv=piv.groupby(level=0).sum().reindex(columns=range(1,13)).fillna(0).sort_index()
+    piv.index=piv.index.astype(int); piv.columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    hm=px.imshow(piv,text_auto=".0f",aspect="auto",color_continuous_scale=[[0,"#0F1318"],[.5,"#5a7a1e"],[1,VOLT]])
+    hm.update_layout(**{k:v for k,v in CHART.items() if k!="showlegend"}); hm.update_coloraxes(showscale=False)
+    hm.update_traces(textfont=dict(family="'JetBrains Mono', monospace",size=10))
+    SHOW(hm,300)
+
     # ============================================================ 3 · THE BUILD
     st.markdown("<div id='build'></div>",unsafe_allow_html=True)
     st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#D6FB4F;">The build</div>
@@ -544,6 +603,21 @@ with t_lab:
         fig=go.Figure(go.Scatter(x=dv["date"],y=dv["vo2max_running"],mode="lines",line=dict(color=VOLT,width=2.5,shape="hv"),hovertemplate="VO2 %{y:.1f}<extra></extra>"))
         fig=grid(fig); fig.update_yaxes(title_text="VO\u2082 max"); SHOW(fig,280)
 
+    # --- Fitness / Fatigue / Form (Garmin load — never Strava CTL) ---
+    chart_head("Fitness \u00b7 Fatigue \u00b7 Form", "Garmin load \u00b7 fitness = chronic load, fatigue = acute load, form = chronic \u2212 acute (fresh when positive)")
+    dff=bdaily(["acute_load","chronic_load"])
+    if dff is None or dff.empty: detail_empty()
+    else:
+        dff=dff.sort_values("date"); form=dff["chronic_load"]-dff["acute_load"]
+        fig=make_subplots(specs=[[{"secondary_y":True}]])
+        fig.add_trace(go.Scatter(x=dff["date"],y=dff["chronic_load"],mode="lines",line=dict(color=VOLT,width=2.5),name="Fitness",hovertemplate="Fitness %{y:.0f}<extra></extra>"),secondary_y=False)
+        fig.add_trace(go.Scatter(x=dff["date"],y=dff["acute_load"],mode="lines",line=dict(color=SIGNAL,width=1.8),name="Fatigue",hovertemplate="Fatigue %{y:.0f}<extra></extra>"),secondary_y=False)
+        fig.add_trace(go.Scatter(x=dff["date"],y=form,mode="lines",line=dict(color="#85B7EB",width=1.5),name="Form",hovertemplate="Form %{y:.0f}<extra></extra>"),secondary_y=True)
+        fig.add_hline(y=0,line_dash="dot",line_color="#5A6472",secondary_y=True)
+        fig=grid(fig); fig.update_yaxes(title_text="load",secondary_y=False)
+        fig.update_yaxes(title_text="form",secondary_y=True,showgrid=False,tickfont=dict(color="#5A6472"))
+        fig.update_layout(showlegend=True,legend=dict(orientation="h",y=1.18,x=0,font=dict(color="#9BA6B2"))); SHOW(fig,300)
+
     # --- Heart rate footnote ---
     chart_head("Heart rate", "Wrist HR — indicative only · pace and effort are the trusted signals")
     rb=bruns(); h=rb[rb["avg_hr"].notna()] if "avg_hr" in rb.columns else rb.iloc[0:0]
@@ -553,63 +627,6 @@ with t_lab:
         fig.add_trace(go.Scatter(x=h["Date_Parsed"],y=h["avg_hr"],mode="markers",marker=dict(color=MUTE,size=4)))
         fig.add_trace(go.Scatter(x=h["Date_Parsed"],y=_rmean(h["avg_hr"],10),mode="lines",line=dict(color="#85B7EB",width=2)))
         fig=grid(fig); fig.update_yaxes(title_text="avg HR (wrist)"); SHOW(fig,240)
-
-    # ===================== TRENDS (trivia · full history · per-chart filters) =====================
-    st.markdown("""<div class="sec"><div class="eyebrow" style="color:#D6FB4F;">Trends</div>
-      <h2>Patterns &amp; trivia</h2></div>
-      <div class="note">Full-history patterns across every recorded run. Each chart carries its own filter.</div>
-      <hr class="rule">""", unsafe_allow_html=True)
-    tr_years=["All time"]+[str(y) for y in sorted(runs_all["year"].dropna().astype(int).unique(),reverse=True)]
-    def tr_scope(key,r):
-        yr=st.selectbox("Year",tr_years,index=0,key=key)
-        return r if yr=="All time" else r[r["year"]==int(yr)]
-
-    # Day of week
-    chart_head("Day of week", "Which days carry the miles")
-    dow_metric=st.radio("Measure",["Distance","Runs"],horizontal=True,index=0,key="dow_m")
-    d=tr_scope("dow_y",runs_all.copy())
-    order=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
-    if dow_metric=="Distance":
-        wd=d.groupby("weekday")["distance_km"].sum().reindex(order).fillna(0); ylab="km"
-    else:
-        wd=d.groupby("weekday").size().reindex(order).fillna(0); ylab="runs"
-    fig=go.Figure(go.Bar(x=order,y=wd.values,marker_color=VOLT,text=[f"{v:.0f}" for v in wd.values],
-        textposition="outside",textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11)))
-    fig=grid(fig); fig.update_yaxes(title_text=ylab); SHOW(fig,260)
-
-    # Hour of day
-    chart_head("Time of day", "When the runs start")
-    d=tr_scope("hour_y",runs_all.copy())
-    if "hour" in d.columns and d["hour"].notna().any():
-        hr=d.groupby(d["hour"].astype("Int64")).size().reindex(range(0,24)).fillna(0)
-        fig=go.Figure(go.Bar(x=list(range(0,24)),y=hr.values,marker_color="#85B7EB"))
-        fig=grid(fig); fig.update_yaxes(title_text="runs"); fig.update_xaxes(title_text="hour"); SHOW(fig,240)
-    else:
-        st.markdown("<div class='empty'>No start-hour data in this filter.</div>",unsafe_allow_html=True)
-
-    # Distance mix
-    chart_head("Distance mix", "How the runs break down by length")
-    d=tr_scope("mix_y",runs_all.copy())
-    order2=["Less than 10K","10K Runs","Between 10K and 21K","Half Marathon","Between Half and Full","Full Marathon"]
-    fr=d["Category_Custom"].value_counts().reindex(order2).fillna(0)
-    fr=fr[fr>0]
-    fig=go.Figure(go.Bar(x=fr.values,y=fr.index,orientation="h",marker_color=VOLT,
-        text=[f"{v:.0f}" for v in fr.values],textposition="outside",textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11)))
-    fig=grid(fig); fig.update_xaxes(title_text="runs"); fig.update_yaxes(showgrid=False); SHOW(fig,260)
-
-    # Monthly consistency (moved from Overview · full history · additive)
-    chart_head("Monthly consistency", "Distance per month · brighter = bigger month · NRC + Strava, additive")
-    sv=runs_all.copy(); sv["mn"]=sv["Date_Parsed"].dt.month
-    piv=sv.pivot_table(index="year",columns="mn",values="distance_km",aggfunc="sum")
-    if NRC is not None:
-        npv=NRC.pivot_table(index="year",columns="mn",values="total_km",aggfunc="sum")
-        piv=pd.concat([piv,npv])
-    piv=piv.groupby(level=0).sum().reindex(columns=range(1,13)).fillna(0).sort_index()
-    piv.index=piv.index.astype(int); piv.columns=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-    hm=px.imshow(piv,text_auto=".0f",aspect="auto",color_continuous_scale=[[0,"#0F1318"],[.5,"#5a7a1e"],[1,VOLT]])
-    hm.update_layout(**{k:v for k,v in CHART.items() if k!="showlegend"}); hm.update_coloraxes(showscale=False)
-    hm.update_traces(textfont=dict(family="'JetBrains Mono', monospace",size=10))
-    SHOW(hm,300)
 
 with t_reg:
     st.markdown("<div class='sec'><div class='eyebrow' style='color:#FF5A3C;'>Race registry</div><h2>Official races</h2></div><hr class='rule'>", unsafe_allow_html=True)
