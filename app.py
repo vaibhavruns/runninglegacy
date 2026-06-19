@@ -346,48 +346,36 @@ st.markdown("""
 t_over,t_lab,t_reg,t_log=st.tabs(["Overview","Data Lab","Race Registry","Activity Log"])
 
 with t_over:
-    # ============================================================ 1 · HERO
-    hero_l,hero_r=st.columns([1.55,1])
+    # ============================================================ 1 · HERO (statement + numbers)
+    hero_l,hero_r=st.columns([1.35,1])
     with hero_l:
-        st.markdown(f"""<div class="reveal">
+        st.markdown("""<div class="reveal">
           <div class="eyebrow">A running record · since 2021</div>
           <div class="statement">Five years.<br>On foot<span class="dot">.</span></div>
-          <div style="font-family:'Saira';font-size:1.05rem;color:#9BA6B2;margin:6px 0 22px;">Building toward the next start line.</div>
-          <div class="herostat">{life_km:,}<small> KM</small></div>
-          <div class="eyebrow" style="margin-top:8px;">Lifetime distance · {life_runs:,} runs</div>
+          <div style="font-family:'Saira';font-size:1.05rem;color:#9BA6B2;margin:8px 0 0;">Five years, two marathons, one continuous climb — building toward the next start line.</div>
         </div>""", unsafe_allow_html=True)
     with hero_r:
-        st.markdown("""<div class="reveal" style="padding-top:4px;">
-          <div class="eyebrow" style="color:#D6FB4F;">The journey</div>
-          <div style="font-family:'Saira';font-weight:800;font-size:2.2rem;color:#ECF0F4;line-height:1.04;margin:6px 0 10px;">The long arc</div>
-          <div class="note" style="font-size:.8rem;">Five years, two marathons, one continuous climb in fitness — from the Nike Run Club era through Berlin and Mumbai to the Sydney build. 2021 to now, NRC archive + Strava combined.</div>
+        st.markdown(f"""<div class="reveal cards" style="margin:0;">
+          <div class="card"><div class="v volt">{life_km:,}</div><div class="l">Lifetime km</div></div>
+          <div class="card"><div class="v">{life_runs:,}</div><div class="l">Total runs</div></div>
+          <div class="card"><div class="v">{n_full}</div><div class="l">Marathons</div></div>
+          <div class="card"><div class="v">{years_running}</div><div class="l">Years running</div></div>
         </div>""", unsafe_allow_html=True)
 
-    # ============================================================ 2 · THE JOURNEY
-    st.markdown("<div id='journey'></div><hr class='rule'>",unsafe_allow_html=True)
+    # ============================================================ 2 · THE MARATHONS (routes)
+    st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#FF5A3C;">The marathons</div>
+      <h2>Two finish lines</h2></div><div class="note">Every metre, drawn from GPS. Two 42.2 km routes, two cities.</div>
+      <hr class="rule">""", unsafe_allow_html=True)
+    rc1,rc2=st.columns(2)
+    for _col,_m in zip([rc1,rc2],MARATHONS):
+        with _col:
+            st.markdown(route_card(_m), unsafe_allow_html=True)
 
-    st.markdown(f"""<div class="cards">
-      <div class="card"><div class="v volt">{life_km:,}</div><div class="l">Lifetime km</div></div>
-      <div class="card"><div class="v">{life_runs:,}</div><div class="l">Total runs</div></div>
-      <div class="card"><div class="v">{n_full}</div><div class="l">Marathons run</div></div>
-      <div class="card"><div class="v">{years_running}</div><div class="l">Years running</div></div>
-    </div>""", unsafe_allow_html=True)
-
-    # Volume by year — columns, additive, NRC years hatched, in-progress year hollow
-    chart_head("Volume by year", "Kilometres per year · NRC + Strava, additive · 2026 in progress")
-    avc=av.copy(); avc["yr"]=avc["year"].astype(str)
-    this_year=pd.Timestamp.today().year
-    bar_colors=["rgba(214,251,79,.35)" if int(y)==this_year else VOLT for y in avc["year"]]
-    fig=go.Figure()
-    fig.add_trace(go.Bar(x=avc["yr"],y=avc["km"],marker_color=bar_colors,
-        text=[f"{k:,.0f}" for k in avc["km"]],textposition="outside",
-        textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11),
-        hovertemplate="%{x}: %{y:,.0f} km<extra></extra>"))
-    fig=grid(fig); fig.update_yaxes(title_text="km"); fig.update_layout(margin=dict(l=8,r=12,t=28,b=8))
-    SHOW(fig,300)
-
-    # Where I've run (map)
-    chart_head("Where I've run", "Every recorded run placed at its city · bubble size = total distance")
+    # ============================================================ 3 · WHERE I'VE RUN (map)
+    st.markdown("<div id='journey'></div>",unsafe_allow_html=True)
+    st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#D6FB4F;">The journey</div>
+      <h2>Where I've run</h2></div><div class="note">Every recorded run placed at its city · bubble size = total distance</div>
+      <hr class="rule">""", unsafe_allow_html=True)
     r=runs_all.copy(); r["loc"]=r["location"].where(r["location"].notna() & r["location"].astype(str).ne("nan"),"Mumbai")
     r["loc"]=r["loc"].apply(lambda c: c if c in CITY_GEO else "Mumbai")
     cv=r.groupby("loc").agg(runs=("distance_km","size"),km=("distance_km","sum")).reset_index()
@@ -401,8 +389,6 @@ with t_over:
         bgcolor="rgba(0,0,0,0)",lakecolor="#0B0D10",lataxis_range=[5,58],lonaxis_range=[-12,100])
     mp.update_layout(paper_bgcolor="rgba(0,0,0,0)",margin=dict(l=0,r=0,t=0,b=0),height=420)
     st.plotly_chart(mp,use_container_width=True,config=STATIC)
-
-    # Cities & countries (below the map)
     cvc=cv.copy(); cvc["country"]=cvc["loc"].map(country_of)
     n_cities=int(cvc["loc"].nunique()); countries=sorted(cvc["country"].unique().tolist()); n_countries=len(countries)
     st.markdown(f"""<div class="cards" style="margin-top:14px;">
@@ -419,7 +405,20 @@ with t_over:
         for c in countries)
     st.markdown(f"<div class='eyebrow' style='margin-top:10px;'>Countries</div><div style='margin-top:4px;'>{country_chips}</div>", unsafe_allow_html=True)
 
-    # Milestones (last in Overview, just before Outlook)
+    # ============================================================ 4 · VOLUME BY YEAR
+    chart_head("Volume by year", "Kilometres per year · NRC + Strava, additive · 2026 in progress")
+    avc=av.copy(); avc["yr"]=avc["year"].astype(str)
+    this_year=pd.Timestamp.today().year
+    bar_colors=["rgba(214,251,79,.35)" if int(y)==this_year else VOLT for y in avc["year"]]
+    fig=go.Figure()
+    fig.add_trace(go.Bar(x=avc["yr"],y=avc["km"],marker_color=bar_colors,
+        text=[f"{k:,.0f}" for k in avc["km"]],textposition="outside",
+        textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11),
+        hovertemplate="%{x}: %{y:,.0f} km<extra></extra>"))
+    fig=grid(fig); fig.update_yaxes(title_text="km"); fig.update_layout(margin=dict(l=8,r=12,t=28,b=8))
+    SHOW(fig,300)
+
+    # ============================================================ 5 · MILESTONES
     chart_head("Milestones", "")
     items=[
         ("2021","First logged runs","Nike Run Club era — monthly archive","steel"),
@@ -432,28 +431,11 @@ with t_over:
     rows="".join(f"<div class='tl-item {c}'><div class='tl-yr'>{yr}</div><div class='tl-t'>{t}</div><div class='tl-s'>{s}</div></div>" for yr,t,s,c in items)
     st.markdown(f"<div class='tl'>{rows}</div>", unsafe_allow_html=True)
 
-    # ============================================================ THE MARATHONS (routes)
-    st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#FF5A3C;">The marathons</div>
-      <h2>Two finish lines</h2></div><div class="note">Every metre, drawn from GPS. Two 42.2 km routes, two cities.</div>
-      <hr class="rule">""", unsafe_allow_html=True)
-    rc1,rc2=st.columns(2)
-    for _col,_m in zip([rc1,rc2],MARATHONS):
-        with _col:
-            st.markdown(route_card(_m), unsafe_allow_html=True)
-
-    # ============================================================ 4 · OUTLOOK (upcoming race · finale)
+    # ============================================================ 6 · ROAD TO SYDNEY (finale · one line)
     st.markdown("<div id='outlook'></div>",unsafe_allow_html=True)
     st.markdown("""<div class="sec reveal"><div class="eyebrow" style="color:#FF5A3C;">Upcoming race</div>
-      <h2>The road to Sydney</h2></div><hr class="rule">""", unsafe_allow_html=True)
-
-    st.markdown(f"""<div class="reveal cd-card" style="text-align:center;padding:30px 24px;">
-      <div class="eyebrow">Next race · {RACE_DATE.strftime('%d %B %Y').upper()}</div>
-      <div style="font-family:'Saira';font-weight:700;font-size:1.7rem;color:#ECF0F4;margin:8px 0 12px;">{RACE_NAME}</div>
-      <div class="cd-num" style="font-size:4.6rem;">{days_to}</div>
-      <div class="eyebrow" style="margin-top:6px;">Days to go</div>
-    </div>""", unsafe_allow_html=True)
-
-    # current form readouts (last 28 days vs prior 28)
+      <h2>The road to Sydney</h2></div><div class="note">Momentum readout — not a prediction. The plan is the plan; the body has the veto.</div>
+      <hr class="rule">""", unsafe_allow_html=True)
     recent=runs_all[runs_all["Date_Parsed"]>=pd.Timestamp.today().normalize()-pd.Timedelta(days=28)]
     prior=runs_all[(runs_all["Date_Parsed"]<pd.Timestamp.today().normalize()-pd.Timedelta(days=28))&(runs_all["Date_Parsed"]>=pd.Timestamp.today().normalize()-pd.Timedelta(days=56))]
     km28=recent["distance_km"].sum(); kmprev=prior["distance_km"].sum()
@@ -473,14 +455,13 @@ with t_over:
     acwr_col=VOLT if (cur_acwr is not None and 0.8<=cur_acwr<=1.3) else (SIGNAL if (cur_acwr is not None and cur_acwr>1.5) else "#ECF0F4")
     ready_txt=f"{cur_ready:.0f}" if cur_ready is not None else "--"
     vo2_txt=f"{cur_vo2:.0f}" if cur_vo2 is not None else "--"
-
-    st.markdown(f"""<div class="cards" style="margin-top:14px;">
+    st.markdown(f"""<div class="cards">
+      <div class="card"><div class="v" style="color:#FF5A3C;">{days_to}</div><div class="l">Days to {RACE_NAME}</div></div>
       <div class="card"><div class="v volt">{km28:.0f}<small style="font-size:.9rem;color:#9BA6B2;"> km</small></div><div class="l">Last 28 days · {delta} vs prior</div></div>
       <div class="card"><div class="v" style="color:{acwr_col};">{acwr_txt}</div><div class="l">Current load (ACWR)</div></div>
       <div class="card"><div class="v">{ready_txt}</div><div class="l">Readiness today</div></div>
       <div class="card"><div class="v">{vo2_txt}</div><div class="l">VO\u2082 max</div></div>
-    </div>
-    <div class="note" style="margin-top:10px;">Momentum readout — not a prediction. The plan is the plan; the body has the veto.</div>""", unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
 with t_lab:
     # ===================== TRENDS (trivia · full history · per-chart filters) =====================
