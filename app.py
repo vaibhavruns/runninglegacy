@@ -111,12 +111,13 @@ div[data-testid="stTabs"] button[aria-selected="true"]{ color:#D6FB4F!important;
 .sec{ margin:64px 0 6px; }
 /* numbers over routes */
 .route-wrap{ position:relative; }
-.route-ov{ position:absolute; top:10px; left:14px; pointer-events:none; }
-.route-ov .big{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:2rem; line-height:1; }
-.route-ov .sub{ font-family:'JetBrains Mono',monospace; font-size:.66rem; color:#9BA6B2; letter-spacing:1px; margin-top:4px; }
+.route-ov{ position:absolute; top:8px; left:12px; pointer-events:none; }
+.route-ov .big{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.95rem; line-height:1; text-shadow:0 0 10px #0B0D10,0 0 22px #0B0D10,0 2px 4px #0B0D10; }
+.route-ov .sub{ font-family:'JetBrains Mono',monospace; font-size:.66rem; color:#C7CED6; letter-spacing:1px; margin-top:5px; text-shadow:0 0 8px #0B0D10,0 0 16px #0B0D10; }
 .route-foot{ display:flex; gap:20px; margin-top:4px; }
 .route-foot .rn{ font-family:'JetBrains Mono',monospace; font-weight:700; color:#ECF0F4; font-size:.95rem; }
 .route-foot .ru{ font-family:'JetBrains Mono',monospace; font-size:.54rem; color:#5A6472; letter-spacing:.5px; margin-top:2px; }
+@media (max-width:640px){ .route-ov .big{ font-size:1.5rem; } .route-foot{ gap:16px; } }
 
 </style>
 """, unsafe_allow_html=True)
@@ -167,8 +168,7 @@ def route_card(m):
     return (f"<div class='route-card' style='border-top:2px solid {m['accent']};'>"
         f"<div class='rtitle'>{m['name']}</div><div class='rdate'>{m['date']}</div>"
         f"<div class='route-wrap'>{svg}"
-        f"<div class='route-ov'><div class='big' style='color:{m['accent']};'>{m['time']}</div>"
-        f"<div class='sub'>{m['dist']} · {m['pace']}</div></div></div>"
+        f"<div class='route-ov'><div class='big' style='color:{m['accent']};'>{m['time']}</div></div></div>"
         f"<div class='route-foot'>"
         f"<div><div class='rn'>{m['dist']}</div><div class='ru'>DISTANCE</div></div>"
         f"<div><div class='rn'>{m['pace']}</div><div class='ru'>PACE</div></div>"
