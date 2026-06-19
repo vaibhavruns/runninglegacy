@@ -1,5 +1,4 @@
-pandas
-plotly
-statsmodels
-scipy
-fitparse
+streamlit>=1.40,<2
+pandas>=2.2,<3
+numpy>=1.26
+plotly>=5.24,<6
