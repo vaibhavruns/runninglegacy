@@ -421,12 +421,11 @@ with t_over:
     # ============================================================ 5 · MILESTONES
     chart_head("Milestones", "")
     items=[
-        ("2021","First logged runs","Nike Run Club era — monthly archive","steel"),
-        ("2022",f"Base year — {int(av[av['year']==2022]['km'].sum()) if (av['year']==2022).any() else 0:,} km","Highest-volume year on record","volt"),
-        ("Sep 2025","Berlin Marathon",f"First full marathon — {marathon_pb}","signal"),
-        ("Early 2026","Knee injury","Managed conservatively, no surgery","signal"),
-        ("May 2026","Comeback","Cleared to run","volt"),
-        ("Now","Building for Sydney","Detailed training data from Jan 2024","now"),
+        ("2021","First logged runs","Nike Run Club era begins","steel"),
+        ("2022",f"Biggest year — {int(av[av['year']==2022]['km'].sum()) if (av['year']==2022).any() else 0:,} km","Most volume in a single year","volt"),
+        ("Sep 2025","Berlin Marathon",f"First full — {marathon_pb}","volt"),
+        ("Jan 2026","Tata Mumbai Marathon","Second full — 4:58:23","signal"),
+        ("Now","Building for Sydney","Marathon number three","now"),
     ]
     rows="".join(f"<div class='tl-item {c}'><div class='tl-yr'>{yr}</div><div class='tl-t'>{t}</div><div class='tl-s'>{s}</div></div>" for yr,t,s,c in items)
     st.markdown(f"<div class='tl'>{rows}</div>", unsafe_allow_html=True)
