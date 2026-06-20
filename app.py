@@ -124,7 +124,7 @@ div[data-testid="stTabs"] button[aria-selected="true"]{ color:#D6FB4F!important;
 
 STATIC={"staticPlot":True,"displayModeBar":False,"responsive":True}
 CHART=dict(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=8,r=12,t=20,b=8),font=dict(family="'JetBrains Mono', monospace",size=12,color="#9BA6B2"),
+    margin=dict(l=8,r=12,t=30,b=42),font=dict(family="'JetBrains Mono', monospace",size=12,color="#9BA6B2"),
     showlegend=False,colorway=[VOLT,SIGNAL,"#9BA6B2","#5DCAA5","#85B7EB"])
 def grid(fig):
     fig.update_layout(**CHART)
@@ -415,7 +415,7 @@ with t_over:
         text=[f"{k:,.0f}" for k in avc["km"]],textposition="outside",
         textfont=dict(family="'JetBrains Mono', monospace",color="#9BA6B2",size=11),
         hovertemplate="%{x}: %{y:,.0f} km<extra></extra>"))
-    fig=grid(fig); fig.update_yaxes(title_text="km"); fig.update_layout(margin=dict(l=8,r=12,t=28,b=8))
+    fig=grid(fig); fig.update_yaxes(title_text="km"); fig.update_layout(margin=dict(l=8,r=12,t=30,b=42))
     SHOW(fig,300)
 
     # ============================================================ 5 · MILESTONES
